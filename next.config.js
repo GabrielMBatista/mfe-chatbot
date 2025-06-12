@@ -19,7 +19,7 @@ const nextConfig = {
                     './Chatbot': './src/pages/chatbot/index.tsx',
                 },
                 remotes: {
-                    shell: 'shell@http://localhost:3000/_next/static/chunks/remoteEntry.js',
+                    shell: `shell@${process.env.NEXT_PUBLIC_SHELL_REMOTE_URL}/_next/static/chunks/remoteEntry.js`,
                 },
                 shared: {
                     react: {
