@@ -4,8 +4,9 @@ import { Providers } from "shell/Providers";
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   return (
-    <Providers>
+    // <Providers>
       <Component {...pageProps} />
-    </Providers>
+    // </Providers>
   );
 }
+

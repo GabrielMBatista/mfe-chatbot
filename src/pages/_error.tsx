@@ -1,5 +1,10 @@
 import { NextPage, NextPageContext } from "next";
-import ErrorClient from "@/components/ErrorClient";
+import dynamic from "next/dynamic";
+
+const ErrorClient = dynamic(() => import("@/components/ErrorClient"), {
+  ssr: false,
+  loading: () => <p>Carregando erro...</p>,
+});
 
 interface ErrorPageProps {
   statusCode?: number;

@@ -1,7 +1,9 @@
-"use client";
+import dynamic from "next/dynamic";
 
-import BotConfig from "../../components/BotConfig";
+const BotConfig = dynamic(() => import("@/components/BotConfig"), {
+  ssr: false,
+});
 
-export default function ChatBotPage() {
+export default function Page() {
   return <BotConfig />;
 }
