@@ -1,18 +1,28 @@
 import { useEffect, useRef, useState } from "react";
+import OverlayHighlighter from "./OverlayHighlighter";
+import { useGabsIA } from "@/hooks/useGabsIA";
 
 type ButtonAction = { label: string; anchorId: string };
 type BotResponse = { reply: string; actions?: ButtonAction[] };
+type TourStep = { selector: string; message: string; action: string };
+
+type GabsIAWidgetProps = { tourEnabled?: boolean };
 
 const localStorageKey = "gabs_disabled";
+const tourStorageKey = "gabs_tour_skipped";
 const base = process.env.NEXT_PUBLIC_CHATBOT_ORIGIN || "http://localhost:3001";
 
-export const GabsIAWidget = () => {
+export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
   const [responses, setResponses] = useState<Record<string, BotResponse>>({});
+  const [tourSteps, setTourSteps] = useState<TourStep[]>([]);
+  const [tourIndex, setTourIndex] = useState(0);
+  const [tourActive, setTourActive] = useState(false);
+  const [tourSkipped, setTourSkipped] = useState(false);
   const [disabled, setDisabled] = useState(false);
   const [contextMessage, setContextMessage] = useState<string | null>(null);
   const [userMessage, setUserMessage] = useState("");
   const [aiReply, setAiReply] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { askGabs, loading } = useGabsIA();
   const [showInput, setShowInput] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [tourStep, setTourStep] = useState<number | null>(-1);
@@ -24,7 +34,9 @@ export const GabsIAWidget = () => {
     "❓ Clique duas vezes em mim para fazer uma pergunta livre sobre o Gabriel ou seus projetos.",
     "👋 Você pode me mover pela tela e me ocultar quando quiser.",
   ];
-
+  const [highlightTarget, setHighlightTarget] = useState<HTMLElement | null>(
+    null
+  );
   const widgetRef = useRef<HTMLDivElement>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
   const [position, setPosition] = useState(() => ({
@@ -37,7 +49,9 @@ export const GabsIAWidget = () => {
       try {
         const res = await fetch(`${base}/responses.json`);
         const json = await res.json();
-        setResponses(json);
+        const { tourSteps: steps = [], ...bot } = json;
+        setResponses(bot);
+        setTourSteps(steps);
       } catch (err) {
         console.error("[GabsIA] Erro ao carregar responses.json", err);
       }
@@ -48,6 +62,8 @@ export const GabsIAWidget = () => {
   useEffect(() => {
     const saved = localStorage.getItem(localStorageKey);
     if (saved === "true") setDisabled(true);
+    const skipped = localStorage.getItem(tourStorageKey);
+    if (skipped === "true") setTourSkipped(true);
   }, []);
 
   useEffect(() => {
@@ -77,11 +93,62 @@ export const GabsIAWidget = () => {
   }, [responses]);
 
   const highlightElement = (el: HTMLElement) => {
+    setHighlightTarget(el);
     el.style.outline = "2px solid #0028af";
     el.style.transition = "outline 0.3s";
     setTimeout(() => {
       el.style.outline = "";
+      setHighlightTarget(null);
     }, 2000);
+  };
+
+  const runTourStep = (index: number) => {
+    const step = tourSteps[index];
+    if (!step) {
+      setTourActive(false);
+      setContextMessage(null);
+      return;
+    }
+    const el = document.querySelector(step.selector) as HTMLElement | null;
+    if (el) {
+      highlightElement(el);
+      const rect = el.getBoundingClientRect();
+      setPosition({
+        top: rect.top + window.scrollY - 80,
+        left: rect.left + window.scrollX - 80,
+      });
+      if (step.action === "click") {
+        (el as HTMLElement).click();
+      }
+    }
+    setContextMessage(step.message);
+    setAiReply(null);
+    setShowInput(false);
+  };
+
+  const startTour = () => {
+    if (!tourSteps.length) return;
+    setTourActive(true);
+    setTourIndex(0);
+    runTourStep(0);
+  };
+
+  const nextTourStep = () => {
+    const next = tourIndex + 1;
+    if (next < tourSteps.length) {
+      setTourIndex(next);
+      runTourStep(next);
+    } else {
+      setTourActive(false);
+      setContextMessage(null);
+    }
+  };
+
+  const skipTour = () => {
+    localStorage.setItem(tourStorageKey, "true");
+    setTourSkipped(true);
+    setTourActive(false);
+    setContextMessage(null);
   };
 
   useEffect(() => {
@@ -116,25 +183,28 @@ export const GabsIAWidget = () => {
   }, []);
 
 
+  useEffect(() => {
+    const handleOpenChat = () => {
+      setContextMessage(null);
+      setAiReply(null);
+      setShowInput(true);
+      setShowInstructions(false);
+    };
+    window.addEventListener("openChat", handleOpenChat as any);
+    return () => window.removeEventListener("openChat", handleOpenChat as any);
+  }, []);
+
   const sendQuestion = async () => {
     if (!userMessage.trim()) return;
-    setLoading(true);
     setContextMessage(null);
     setAiReply(null);
 
     try {
-      const res = await fetch("/api/gabsia", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage }),
-      });
-
-      const data = await res.json();
+      const data = await askGabs(userMessage);
       setAiReply(data.reply || "Sem resposta.");
     } catch (err) {
       setAiReply("Erro ao se comunicar com a IA.");
     } finally {
-      setLoading(false);
       setUserMessage("");
     }
   };
@@ -142,6 +212,7 @@ export const GabsIAWidget = () => {
   if (disabled) return null;
 
   return (
+
     <div
       ref={widgetRef}
       style={{
@@ -156,6 +227,23 @@ export const GabsIAWidget = () => {
       }}
     >
       {tourStep !== null && (
+
+    <>
+      <OverlayHighlighter target={highlightTarget} />
+      <div
+        ref={widgetRef}
+        style={{
+          position: "fixed",
+          top: position.top,
+          left: position.left,
+          zIndex: 9999,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          cursor: "grab",
+        }}
+      >
+      {showInstructions && (
         <div
           style={{
             maxWidth: 300,
@@ -280,6 +368,7 @@ export const GabsIAWidget = () => {
                 setContextMessage(null);
                 setAiReply(null);
                 setShowInput(false);
+                setHighlightTarget(null);
               }}
               style={{
                 background: "none",
@@ -328,15 +417,51 @@ export const GabsIAWidget = () => {
                   width: "100%",
                 }}
               >
-                Perguntar
+              Perguntar
               </button>
             </>
+          )}
+          {tourActive && (
+            <div
+              style={{
+                marginTop: 8,
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 8,
+              }}
+            >
+              <button
+                onClick={nextTourStep}
+                style={{
+                  background: "#0028af",
+                  color: "#fff",
+                  border: "none",
+                  padding: "6px 12px",
+                  borderRadius: 6,
+                  cursor: "pointer",
+                }}
+              >
+                {tourSteps[tourIndex]?.action || "Próximo"}
+              </button>
+              <button
+                onClick={skipTour}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#999",
+                  cursor: "pointer",
+                }}
+              >
+                Pular tour
+              </button>
+            </div>
           )}
           <div style={{ textAlign: "right", marginTop: 8 }}>
             <button
               onClick={() => {
                 localStorage.setItem(localStorageKey, "true");
                 setDisabled(true);
+                setHighlightTarget(null);
               }}
               style={{
                 fontSize: 10,
@@ -353,6 +478,21 @@ export const GabsIAWidget = () => {
       )}
 
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        {tourEnabled && !tourActive && !tourSkipped && (
+          <button
+            onClick={startTour}
+            style={{
+              background: "#0028af",
+              color: "#fff",
+              border: "none",
+              padding: "6px 8px",
+              borderRadius: 6,
+              cursor: "pointer",
+            }}
+          >
+            Iniciar tour
+          </button>
+        )}
         <div
           className="gabs-avatar"
           title="Arraste-me ou clique em um item do portfólio"
@@ -361,6 +501,7 @@ export const GabsIAWidget = () => {
             setContextMessage(null);
             setAiReply(null);
             setShowInput((prev) => !prev);
+            setHighlightTarget(null);
           }}
           style={{
             width: 64,
@@ -384,6 +525,7 @@ export const GabsIAWidget = () => {
         </div>
       </div>
     </div>
+  </>
   );
 };
 
