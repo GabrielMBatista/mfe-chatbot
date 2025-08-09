@@ -1,18 +1,72 @@
 import { useEffect, useRef, useState } from "react";
 import OverlayHighlighter from "./OverlayHighlighter";
 import { useGabsIA } from "@/hooks/useGabsIA";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
-type ButtonAction = { label: string; anchorId: string };
-type BotResponse = { reply: string; actions?: ButtonAction[] };
-type TourStep = { selector: string; message: string; action: string };
+// Versão dos tipos/contrato do widget (atualize ao mudar a API/props/tipos)
+export const TYPES_VERSION = "1.0.0";
 
-type GabsIAWidgetProps = { tourEnabled?: boolean };
+// Tipagem global para a função de reabrir o chat
+declare global {
+  interface Window {
+    reopenGabsIAWidget?: () => void;
+  }
+}
+
+export type ButtonAction = { label: string; anchorId: string };
+export type BotResponse = { reply: string; actions?: ButtonAction[] };
+export type TourStep = { selector: string; message: string; action: string };
+export type DockPos = Partial<{
+  top: number;
+  left: number;
+  right: number;
+  bottom: number;
+}>;
+
+export type GabsIAWidgetProps = {
+  tourEnabled?: boolean;
+  // posição fixa definida pelo shell (ex.: { bottom: 24, right: 24 })
+  fixedPosition?: DockPos;
+};
 
 const localStorageKey = "gabs_disabled";
 const tourStorageKey = "gabs_tour_skipped";
 const base = process.env.NEXT_PUBLIC_CHATBOT_ORIGIN || "http://localhost:3001";
 
-export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
+// Novos assets (servir do origin do MF para evitar 404 no host)
+const ASSETS = {
+  anchor: `${base}/widget-anchor.lottie`,
+  robot: `${base}/robot-avatar.lottie`,
+};
+
+// Export nomeado para o shell: import { reopenGabsIAWidget } from 'Chatbot/GabsIAWidget'
+export function reopenGabsIAWidget() {
+  if (typeof window === "undefined") return;
+  try {
+    // desfaz o "Desativar assistente"
+    localStorage.removeItem(localStorageKey);
+  } catch {}
+  // reabilita o widget e abre o chat
+  window.dispatchEvent(new Event("enableGabs"));
+  window.dispatchEvent(new Event("openChat"));
+}
+
+// Novo: export para o shell definir posição fixa
+export function pinGabsIAWidgetAt(position: DockPos) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("pinGabs", { detail: position } as any));
+}
+
+// Novo: export para desfazer modo fixo
+export function unpinGabsIAWidget() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event("unpinGabs"));
+}
+
+export const GabsIAWidget = ({
+  tourEnabled = false,
+  fixedPosition,
+}: GabsIAWidgetProps) => {
   const [responses, setResponses] = useState<Record<string, BotResponse>>({});
   const [tourSteps, setTourSteps] = useState<TourStep[]>([]);
   const [tourIndex, setTourIndex] = useState(0);
@@ -27,11 +81,13 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [tourStep, setTourStep] = useState<number | null>(-1);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const [dockPos, setDockPos] = useState<DockPos>({});
 
   const [showInstructions, setShowInstructions] = useState(true);
 
   const introSteps = [
-    "Sou o Gabs.IA, seu assistente interativo neste portfólio.",
+    "Sou o G•One, seu assistente interativo neste portfólio.",
     "🖱️ Clique em qualquer elemento interativo para saber mais sobre ele — eu destacarei o item e explicarei como foi feito.",
     "❓ Clique duas vezes em mim para fazer uma pergunta livre sobre o Gabriel ou seus projetos.",
     "👋 Você pode me mover pela tela e me ocultar quando quiser.",
@@ -78,6 +134,8 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
+      // quando desativado, não reage a anchors/data-gabs
+      if (disabled) return;
       const el = (e.target as HTMLElement).closest("[data-gabs]");
       if (!el) return;
 
@@ -92,7 +150,7 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
 
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
-  }, [responses]);
+  }, [responses, disabled]);
 
   const highlightElement = (el: HTMLElement) => {
     setHighlightTarget(el);
@@ -168,6 +226,8 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
     };
 
     const startDrag = (e: MouseEvent) => {
+      // drag desabilitado somente quando pinned (ou seja, quando disabled === true)
+      if (pinned) return;
       const rect = widgetRef.current?.getBoundingClientRect();
       if (!rect) return;
       dragOffset.current = {
@@ -182,7 +242,7 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
     const el = widgetRef.current;
     el?.addEventListener("mousedown", startDrag as any);
     return () => el?.removeEventListener("mousedown", startDrag as any);
-  }, []);
+  }, [pinned]);
 
   useEffect(() => {
     const handleOpenChat = () => {
@@ -193,6 +253,52 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
     };
     window.addEventListener("openChat", handleOpenChat as any);
     return () => window.removeEventListener("openChat", handleOpenChat as any);
+  }, []);
+
+  // Reage ao "enableGabs" para reativar o widget após desfazer o disable
+  useEffect(() => {
+    const handleEnable = () => setDisabled(false);
+    window.addEventListener("enableGabs", handleEnable as any);
+    return () => window.removeEventListener("enableGabs", handleEnable as any);
+  }, []);
+
+  // pinned segue o estado "disabled": só fixa quando gabs_disabled === "true"
+  useEffect(() => {
+    if (disabled) {
+      setPinned(true);
+      if (fixedPosition && Object.keys(fixedPosition).length) {
+        setDockPos(fixedPosition);
+      }
+    } else {
+      setPinned(false);
+    }
+  }, [disabled, fixedPosition]);
+
+  // Ouve eventos do shell para ajustar posição quando pinned (disabled === true)
+  useEffect(() => {
+    const onPin = (e: Event) => {
+      const detail = (e as CustomEvent<DockPos>).detail || {};
+      if (disabled && detail && Object.keys(detail).length) setDockPos(detail);
+    };
+    const onUnpin = () => {
+      /* ignorado: pinned é derivado de disabled */
+    };
+    window.addEventListener("pinGabs", onPin as any);
+    window.addEventListener("unpinGabs", onUnpin as any);
+    return () => {
+      window.removeEventListener("pinGabs", onPin as any);
+      window.removeEventListener("unpinGabs", onUnpin as any);
+    };
+  }, []);
+
+  useEffect(() => {
+    // expõe função global (compat com chamadas diretas do shell)
+    window.reopenGabsIAWidget = () => {
+      reopenGabsIAWidget();
+    };
+    return () => {
+      delete window.reopenGabsIAWidget;
+    };
   }, []);
 
   const sendQuestion = async () => {
@@ -210,25 +316,29 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
     }
   };
 
-  if (disabled) return null;
+  // Estilo de posição: quando pinned (disabled === true), usa fixedPosition (se existir) ou dockPos; senão usa posição arrastável
+  const stylePosition: DockPos = pinned
+    ? fixedPosition && Object.keys(fixedPosition).length
+      ? fixedPosition
+      : dockPos
+    : { top: position.top, left: position.left };
 
   return (
     <div
       ref={widgetRef}
       style={{
         position: "fixed",
-        top: position.top,
-        left: position.left,
+        ...stylePosition,
         zIndex: 9999,
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-end",
-        cursor: "grab",
+        cursor: pinned ? "default" : "grab",
       }}
     >
-      <OverlayHighlighter target={highlightTarget} />
+      {!disabled && <OverlayHighlighter target={highlightTarget} />}
 
-      {showInstructions && tourStep !== null && (
+      {showInstructions && tourStep !== null && !disabled && (
         <div
           style={{
             maxWidth: 300,
@@ -328,7 +438,7 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
         </div>
       )}
 
-      {(contextMessage || aiReply || showInput) && (
+      {(contextMessage || aiReply || showInput) && !disabled && (
         <div
           style={{
             maxWidth: 300,
@@ -349,12 +459,43 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
               marginBottom: 4,
             }}
           >
-            <strong>Gabs.IA</strong>
+            {/* avatar do robô + título */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {!reduceMotion ? (
+                <DotLottieReact
+                  src={ASSETS.robot}
+                  loop
+                  autoplay
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: "50%",
+                    overflow: "hidden",
+                  }}
+                />
+              ) : (
+                <img
+                  src={ASSETS.robot}
+                  alt="Avatar G•One"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = ASSETS.robot;
+                  }}
+                  style={{ width: 24, height: 24, borderRadius: "50%" }}
+                />
+              )}
+              <strong>G•One</strong>
+            </div>
             <button
               onClick={() => {
+                // fecha o chat e ativa o modo "desativado/fixo"
+                try {
+                  localStorage.setItem(localStorageKey, "true");
+                } catch {}
+                setDisabled(true);
                 setContextMessage(null);
                 setAiReply(null);
-                setShowInput(false);
+                setShowInput(false); // reduz ao canvas básico
                 setHighlightTarget(null);
               }}
               style={{
@@ -444,30 +585,11 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
               </button>
             </div>
           )}
-
-          <div style={{ textAlign: "right", marginTop: 8 }}>
-            <button
-              onClick={() => {
-                localStorage.setItem(localStorageKey, "true");
-                setDisabled(true);
-                setHighlightTarget(null);
-              }}
-              style={{
-                fontSize: 10,
-                background: "none",
-                border: "none",
-                color: "#999",
-                cursor: "pointer",
-              }}
-            >
-              Desativar assistente
-            </button>
-          </div>
         </div>
       )}
 
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        {tourEnabled && !tourActive && !tourSkipped && (
+        {tourEnabled && !tourActive && !tourSkipped && !disabled && (
           <button
             onClick={startTour}
             style={{
@@ -485,33 +607,56 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
 
         <div
           className="gabs-avatar"
+          role="button"
+          aria-label="Abrir G•One"
           title="Arraste-me ou clique em um item do portfólio"
           onClick={() => {
             if (isDragging) return;
+            if (disabled) {
+              // reativa e abre o chat quando o usuário clicar no avatar
+              reopenGabsIAWidget();
+              return;
+            }
             setContextMessage(null);
             setAiReply(null);
             setShowInput((prev) => !prev);
             setHighlightTarget(null);
           }}
           style={{
-            width: 64,
-            height: 64,
+            width: 54,
+            height: 54,
             borderRadius: "50%",
             background: "#0028af",
-            color: "white",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            fontSize: 30,
             boxShadow: "0 0 12px rgba(0,0,0,0.2)",
             userSelect: "none",
             animation:
               tourStep !== null && !reduceMotion
                 ? "gabs-bounce 1s infinite"
                 : undefined,
+            overflow: "hidden",
           }}
         >
-          🤖
+          {!reduceMotion ? (
+            <DotLottieReact
+              src={ASSETS.anchor}
+              loop
+              autoplay
+              style={{ width: "100%", height: "100%" }}
+            />
+          ) : (
+            <img
+              src={ASSETS.anchor}
+              alt="Abrir assistente"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = ASSETS.anchor;
+              }}
+              style={{ width: "60%", height: "60%", objectFit: "contain" }}
+            />
+          )}
         </div>
       </div>
     </div>

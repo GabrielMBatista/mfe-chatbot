@@ -36,7 +36,7 @@ export function useGabsIA() {
 
     // Caso não encontre âncora, chama OpenAI
     try {
-      const result = await fetch("/api/gabsia", {
+      const result = await fetch(`${base}/api/gabsia`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message }),

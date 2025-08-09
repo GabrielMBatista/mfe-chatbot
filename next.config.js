@@ -49,17 +49,28 @@ const nextConfig = {
     transpilePackages: ['@meta/react-components'],
     output: 'standalone',
     async headers() {
+        const allow = process.env.NEXT_PUBLIC_ALLOW_CORS_LOCALHOST === "true";
+        if (!allow) return [];
+        // permite acesso de origens localhost/127.0.0.1 em dev
+        const common = [
+            { key: "Access-Control-Allow-Origin", value: "*" },
+            { key: "Access-Control-Allow-Methods", value: "GET,POST,PUT,OPTIONS" },
+            { key: "Access-Control-Allow-Headers", value: "Content-Type, Authorization" },
+            { key: "Access-Control-Max-Age", value: "86400" },
+            { key: "Vary", value: "Origin" },
+        ];
         return [
-            {
-                source: '/responses.json',
-                headers: [
-                    {
-                        key: 'Access-Control-Allow-Origin',
-                        value: '*'
-                    }
-                ]
-            }
-        ]
+            // catch-all: garante CORS também para arquivos no /public (ex.: .lottie)
+            { source: "/:path*", headers: common },
+            { source: "/:path*.lottie", headers: common },
+            { source: "/api/:path*", headers: common },
+            { source: "/responses.json", headers: common },
+            { source: "/_next/static/chunks/:path*", headers: common },
+            { source: "/_next/static/:path*", headers: common },
+            { source: "/_next/mf-manifest.json", headers: common },
+            { source: "/static/chunks/:path*", headers: common },
+            { source: "/types/:path*", headers: common },
+        ];
     }
 };
 
