@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import OverlayHighlighter from "./OverlayHighlighter";
 
 type ButtonAction = { label: string; anchorId: string };
 type BotResponse = { reply: string; actions?: ButtonAction[] };
@@ -16,6 +17,9 @@ export const GabsIAWidget = () => {
   const [showInput, setShowInput] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
+  const [highlightTarget, setHighlightTarget] = useState<HTMLElement | null>(
+    null
+  );
 
   const widgetRef = useRef<HTMLDivElement>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
@@ -61,10 +65,12 @@ export const GabsIAWidget = () => {
   }, [responses]);
 
   const highlightElement = (el: HTMLElement) => {
+    setHighlightTarget(el);
     el.style.outline = "2px solid #0028af";
     el.style.transition = "outline 0.3s";
     setTimeout(() => {
       el.style.outline = "";
+      setHighlightTarget(null);
     }, 2000);
   };
 
@@ -135,19 +141,21 @@ export const GabsIAWidget = () => {
   if (disabled) return null;
 
   return (
-    <div
-      ref={widgetRef}
-      style={{
-        position: "fixed",
-        top: position.top,
-        left: position.left,
-        zIndex: 9999,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-end",
-        cursor: "grab",
-      }}
-    >
+    <>
+      <OverlayHighlighter target={highlightTarget} />
+      <div
+        ref={widgetRef}
+        style={{
+          position: "fixed",
+          top: position.top,
+          left: position.left,
+          zIndex: 9999,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          cursor: "grab",
+        }}
+      >
       {showInstructions && (
         <div
           style={{
@@ -205,6 +213,7 @@ export const GabsIAWidget = () => {
                 setContextMessage(null);
                 setAiReply(null);
                 setShowInput(false);
+                setHighlightTarget(null);
               }}
               style={{
                 background: "none",
@@ -262,6 +271,7 @@ export const GabsIAWidget = () => {
               onClick={() => {
                 localStorage.setItem(localStorageKey, "true");
                 setDisabled(true);
+                setHighlightTarget(null);
               }}
               style={{
                 fontSize: 10,
@@ -286,6 +296,7 @@ export const GabsIAWidget = () => {
             setContextMessage(null);
             setAiReply(null);
             setShowInput((prev) => !prev);
+            setHighlightTarget(null);
           }}
           style={{
             width: 64,
@@ -305,6 +316,7 @@ export const GabsIAWidget = () => {
         </div>
       </div>
     </div>
+  </>
   );
 };
 
