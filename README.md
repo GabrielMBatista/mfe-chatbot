@@ -2,6 +2,10 @@
 
 This is a really simple project that shows the usage of Next.js with TypeScript.
 
+## Tour opcional
+
+O widget inclui um tour introdutório opcional. Use o botão **Pular tour** no início ou em qualquer etapa para ignorá-lo. O chat pode ser aberto a qualquer momento durante ou após o tour.
+
 ## Deploy your own
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/vercel/next.js/tree/canary/examples/with-typescript&project-name=with-typescript&repository-name=with-typescript)
