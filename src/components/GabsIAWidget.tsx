@@ -28,7 +28,9 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
   const [tourStep, setTourStep] = useState<number | null>(-1);
   const [reduceMotion, setReduceMotion] = useState(false);
 
-  const tourSteps = [
+  const [showInstructions, setShowInstructions] = useState(true);
+
+  const introSteps = [
     "Sou o Gabs.IA, seu assistente interativo neste portfólio.",
     "🖱️ Clique em qualquer elemento interativo para saber mais sobre ele — eu destacarei o item e explicarei como foi feito.",
     "❓ Clique duas vezes em mim para fazer uma pergunta livre sobre o Gabriel ou seus projetos.",
@@ -182,7 +184,6 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
     return () => el?.removeEventListener("mousedown", startDrag as any);
   }, []);
 
-
   useEffect(() => {
     const handleOpenChat = () => {
       setContextMessage(null);
@@ -212,7 +213,6 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
   if (disabled) return null;
 
   return (
-
     <div
       ref={widgetRef}
       style={{
@@ -226,24 +226,9 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
         cursor: "grab",
       }}
     >
-      {tourStep !== null && (
-
-    <>
       <OverlayHighlighter target={highlightTarget} />
-      <div
-        ref={widgetRef}
-        style={{
-          position: "fixed",
-          top: position.top,
-          left: position.left,
-          zIndex: 9999,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-end",
-          cursor: "grab",
-        }}
-      >
-      {showInstructions && (
+
+      {showInstructions && tourStep !== null && (
         <div
           style={{
             maxWidth: 300,
@@ -261,7 +246,9 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
               <div style={{ fontWeight: "bold", marginBottom: 4 }}>
                 Bem-vindo! 👋
               </div>
-              <p>Este tour é opcional. Você pode abrir o chat a qualquer momento.</p>
+              <p>
+                Este tour é opcional. Você pode abrir o chat a qualquer momento.
+              </p>
               <div
                 style={{
                   display: "flex",
@@ -298,7 +285,7 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
             </>
           ) : (
             <>
-              <p>{tourSteps[tourStep]}</p>
+              <p>{introSteps[tourStep]}</p>
               <div
                 style={{
                   display: "flex",
@@ -321,7 +308,7 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
                 <button
                   onClick={() =>
                     setTourStep(
-                      tourStep < tourSteps.length - 1 ? tourStep + 1 : null
+                      tourStep < introSteps.length - 1 ? tourStep + 1 : null
                     )
                   }
                   style={{
@@ -333,7 +320,7 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
                     cursor: "pointer",
                   }}
                 >
-                  {tourStep < tourSteps.length - 1 ? "Próximo" : "Finalizar"}
+                  {tourStep < introSteps.length - 1 ? "Próximo" : "Finalizar"}
                 </button>
               </div>
             </>
@@ -417,10 +404,11 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
                   width: "100%",
                 }}
               >
-              Perguntar
+                Perguntar
               </button>
             </>
           )}
+
           {tourActive && (
             <div
               style={{
@@ -456,6 +444,7 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
               </button>
             </div>
           )}
+
           <div style={{ textAlign: "right", marginTop: 8 }}>
             <button
               onClick={() => {
@@ -493,6 +482,7 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
             Iniciar tour
           </button>
         )}
+
         <div
           className="gabs-avatar"
           title="Arraste-me ou clique em um item do portfólio"
@@ -525,7 +515,6 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
         </div>
       </div>
     </div>
-  </>
   );
 };
 
