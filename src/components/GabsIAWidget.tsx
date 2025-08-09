@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import OverlayHighlighter from "./OverlayHighlighter";
 import { useGabsIA } from "@/hooks/useGabsIA";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import guidedSteps from "@/tourSteps";
 
 // Versão dos tipos/contrato do widget (atualize ao mudar a API/props/tipos)
 export const TYPES_VERSION = "1.0.0";
@@ -13,14 +14,11 @@ declare global {
   }
 }
 
-export type ButtonAction = { label: string; anchorId: string };
-export type BotResponse = { reply: string; actions?: ButtonAction[] };
-export type TourStep = { selector: string; message: string; action: string };
 export type DockPos = Partial<{
-  top: number;
-  left: number;
-  right: number;
-  bottom: number;
+  top: number | string;
+  left: number | string;
+  right: number | string;
+  bottom: number | string;
 }>;
 
 export type GabsIAWidgetProps = {
@@ -30,6 +28,7 @@ export type GabsIAWidgetProps = {
 };
 
 const localStorageKey = "gabs_disabled";
+const positionStorageKey = "gabs_position";
 const tourStorageKey = "gabs_tour_skipped";
 const base = process.env.NEXT_PUBLIC_CHATBOT_ORIGIN || "http://localhost:3001";
 
@@ -67,8 +66,7 @@ export const GabsIAWidget = ({
   tourEnabled = false,
   fixedPosition,
 }: GabsIAWidgetProps) => {
-  const [responses, setResponses] = useState<Record<string, BotResponse>>({});
-  const [tourSteps, setTourSteps] = useState<TourStep[]>([]);
+  const { askGabs, loading, responses } = useGabsIA();
   const [tourIndex, setTourIndex] = useState(0);
   const [tourActive, setTourActive] = useState(false);
   const [tourSkipped, setTourSkipped] = useState(false);
@@ -76,46 +74,29 @@ export const GabsIAWidget = ({
   const [contextMessage, setContextMessage] = useState<string | null>(null);
   const [userMessage, setUserMessage] = useState("");
   const [aiReply, setAiReply] = useState<string | null>(null);
-  const { askGabs, loading } = useGabsIA();
   const [showInput, setShowInput] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [tourStep, setTourStep] = useState<number | null>(-1);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [pinned, setPinned] = useState(false);
   const [dockPos, setDockPos] = useState<DockPos>({});
 
-  const [showInstructions, setShowInstructions] = useState(true);
-
-  const introSteps = [
-    "Sou o G•One, seu assistente interativo neste portfólio.",
-    "🖱️ Clique em qualquer elemento interativo para saber mais sobre ele — eu destacarei o item e explicarei como foi feito.",
-    "❓ Clique duas vezes em mim para fazer uma pergunta livre sobre o Gabriel ou seus projetos.",
-    "👋 Você pode me mover pela tela e me ocultar quando quiser.",
-  ];
   const [highlightTarget, setHighlightTarget] = useState<HTMLElement | null>(
     null
   );
   const widgetRef = useRef<HTMLDivElement>(null);
+  const avatarRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const lastTapRef = useRef<number>(0);
   const dragOffset = useRef({ x: 0, y: 0 });
+  const latestPosRef = useRef<{ left: number; top: number }>({
+    left: 0,
+    top: 0,
+  });
   const [position, setPosition] = useState(() => ({
     top: typeof window !== "undefined" ? window.innerHeight / 3 - 32 : 300,
     left: typeof window !== "undefined" ? window.innerWidth / 3 - 32 : 300,
   }));
-
-  useEffect(() => {
-    const loadResponses = async () => {
-      try {
-        const res = await fetch(`${base}/responses.json`);
-        const json = await res.json();
-        const { tourSteps: steps = [], ...bot } = json;
-        setResponses(bot);
-        setTourSteps(steps);
-      } catch (err) {
-        console.error("[GabsIA] Erro ao carregar responses.json", err);
-      }
-    };
-    loadResponses();
-  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem(localStorageKey);
@@ -163,13 +144,15 @@ export const GabsIAWidget = ({
   };
 
   const runTourStep = (index: number) => {
-    const step = tourSteps[index];
+    const step = guidedSteps[index];
     if (!step) {
       setTourActive(false);
       setContextMessage(null);
       return;
     }
-    const el = document.querySelector(step.selector) as HTMLElement | null;
+    const el = step.target
+      ? (document.querySelector(step.target) as HTMLElement | null)
+      : null;
     if (el) {
       highlightElement(el);
       const rect = el.getBoundingClientRect();
@@ -181,13 +164,16 @@ export const GabsIAWidget = ({
         (el as HTMLElement).click();
       }
     }
-    setContextMessage(step.message);
+    setContextMessage(step.content);
     setAiReply(null);
     setShowInput(false);
+    if (step.action === "openChat") {
+      window.dispatchEvent(new Event("openChat"));
+    }
   };
 
   const startTour = () => {
-    if (!tourSteps.length) return;
+    if (!guidedSteps.length) return;
     setTourActive(true);
     setTourIndex(0);
     runTourStep(0);
@@ -195,7 +181,7 @@ export const GabsIAWidget = ({
 
   const nextTourStep = () => {
     const next = tourIndex + 1;
-    if (next < tourSteps.length) {
+    if (next < guidedSteps.length) {
       setTourIndex(next);
       runTourStep(next);
     } else {
@@ -212,21 +198,112 @@ export const GabsIAWidget = ({
   };
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setPosition({
-        top: e.clientY - dragOffset.current.y,
-        left: e.clientX - dragOffset.current.x,
-      });
+    const mq = window.matchMedia("(max-width: 768px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener?.("change", update);
+    const onResize = () => update();
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    return () => {
+      mq.removeEventListener?.("change", update);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
     };
+  }, []);
 
-    const handleMouseUp = () => {
+  const clampPosition = (x: number, y: number) => {
+    const sz = isMobile ? 64 : 54;
+    const margin = 8;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const clampedX = Math.min(Math.max(x, margin), vw - sz - margin);
+    const clampedY = Math.min(Math.max(y, margin), vh - sz - margin);
+    return { left: clampedX, top: clampedY };
+  };
+
+  // Carrega a posição salva (quando não pinned) na montagem e ao mudar para enabled
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(positionStorageKey);
+      if (raw) {
+        const p = JSON.parse(raw) as { left?: number; top?: number };
+        if (typeof p.left === "number" && typeof p.top === "number") {
+          const clamped = clampPosition(p.left, p.top);
+          setPosition({ top: clamped.top, left: clamped.left });
+        }
+      }
+    } catch {}
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (disabled) return;
+    try {
+      const raw = localStorage.getItem(positionStorageKey);
+      if (raw) {
+        const p = JSON.parse(raw) as { left?: number; top?: number };
+        if (typeof p.left === "number" && typeof p.top === "number") {
+          const clamped = clampPosition(p.left, p.top);
+          setPosition({ top: clamped.top, left: clamped.left });
+        }
+      }
+    } catch {}
+  }, [disabled]);
+
+  useEffect(() => {
+    const handler = () => {
+      if (pinned) return;
+      setPosition((prev) => clampPosition(prev.left, prev.top));
+    };
+    window.addEventListener("resize", handler);
+    window.addEventListener("orientationchange", handler);
+    return () => {
+      window.removeEventListener("resize", handler);
+      window.removeEventListener("orientationchange", handler);
+    };
+  }, [pinned, isMobile]);
+
+  // Mantém a posição mais recente em um ref para salvar no término do drag
+  useEffect(() => {
+    latestPosRef.current = { left: position.left, top: position.top };
+  }, [position]);
+
+  // Drag (desktop: container e avatar; mobile: avatar). Bloqueia apenas quando pinned.
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      const { left, top } = clampPosition(
+        e.clientX - dragOffset.current.x,
+        e.clientY - dragOffset.current.y
+      );
+      setPosition({ left, top });
+    };
+    const onMouseUp = () => {
+      // salva posição ao finalizar drag (se não estiver pinned)
+      if (!pinned) {
+        try {
+          localStorage.setItem(
+            positionStorageKey,
+            JSON.stringify(latestPosRef.current)
+          );
+        } catch {}
+      }
       setTimeout(() => setIsDragging(false), 100);
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
     };
-
-    const startDrag = (e: MouseEvent) => {
-      // drag desabilitado somente quando pinned (ou seja, quando disabled === true)
+    const startMouseOnAvatar = (e: MouseEvent) => {
+      if (pinned) return;
+      const rect = avatarRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      dragOffset.current = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      };
+      setIsDragging(true);
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    };
+    const startMouseOnContainer = (e: MouseEvent) => {
       if (pinned) return;
       const rect = widgetRef.current?.getBoundingClientRect();
       if (!rect) return;
@@ -235,21 +312,68 @@ export const GabsIAWidget = ({
         y: e.clientY - rect.top,
       };
       setIsDragging(true);
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
     };
 
-    const el = widgetRef.current;
-    el?.addEventListener("mousedown", startDrag as any);
-    return () => el?.removeEventListener("mousedown", startDrag as any);
-  }, [pinned]);
+    const onTouchMove = (e: TouchEvent) => {
+      // evita scroll enquanto arrasta
+      e.preventDefault();
+      const t = e.touches[0];
+      const { left, top } = clampPosition(
+        t.clientX - dragOffset.current.x,
+        t.clientY - dragOffset.current.y
+      );
+      setPosition({ left, top });
+    };
+    const onTouchEnd = () => {
+      if (!pinned) {
+        try {
+          localStorage.setItem(
+            positionStorageKey,
+            JSON.stringify(latestPosRef.current)
+          );
+        } catch {}
+      }
+      setTimeout(() => setIsDragging(false), 100);
+      window.removeEventListener("touchmove", onTouchMove as any);
+      window.removeEventListener("touchend", onTouchEnd as any);
+      window.removeEventListener("touchcancel", onTouchEnd as any);
+    };
+    const startTouch = (e: TouchEvent) => {
+      if (pinned) return;
+      const rect = avatarRef.current?.getBoundingClientRect();
+      const t = e.touches[0];
+      if (!rect || !t) return;
+      dragOffset.current = {
+        x: t.clientX - rect.left,
+        y: t.clientY - rect.top,
+      };
+      setIsDragging(true);
+      window.addEventListener("touchmove", onTouchMove as any, {
+        passive: false,
+      });
+      window.addEventListener("touchend", onTouchEnd as any);
+      window.addEventListener("touchcancel", onTouchEnd as any);
+    };
+
+    const el = avatarRef.current;
+    el?.addEventListener("mousedown", startMouseOnAvatar as any);
+    el?.addEventListener("touchstart", startTouch as any, { passive: false });
+    const container = widgetRef.current;
+    container?.addEventListener("mousedown", startMouseOnContainer as any);
+    return () => {
+      el?.removeEventListener("mousedown", startMouseOnAvatar as any);
+      el?.removeEventListener("touchstart", startTouch as any);
+      container?.removeEventListener("mousedown", startMouseOnContainer as any);
+    };
+  }, [pinned, isMobile]);
 
   useEffect(() => {
     const handleOpenChat = () => {
       setContextMessage(null);
       setAiReply(null);
       setShowInput(true);
-      setShowInstructions(false);
     };
     window.addEventListener("openChat", handleOpenChat as any);
     return () => window.removeEventListener("openChat", handleOpenChat as any);
@@ -334,114 +458,17 @@ export const GabsIAWidget = ({
         flexDirection: "column",
         alignItems: "flex-end",
         cursor: pinned ? "default" : "grab",
+        paddingRight: "env(safe-area-inset-right)",
+        paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
       {!disabled && <OverlayHighlighter target={highlightTarget} />}
 
-      {showInstructions && tourStep !== null && !disabled && (
-        <div
-          style={{
-            maxWidth: 300,
-            background: "#fff",
-            border: "1px solid #ccc",
-            borderRadius: 12,
-            boxShadow: "0 0 10px rgba(0,0,0,0.2)",
-            padding: 12,
-            marginBottom: 8,
-            position: "relative",
-          }}
-        >
-          {tourStep === -1 ? (
-            <>
-              <div style={{ fontWeight: "bold", marginBottom: 4 }}>
-                Bem-vindo! 👋
-              </div>
-              <p>
-                Este tour é opcional. Você pode abrir o chat a qualquer momento.
-              </p>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: 8,
-                  marginTop: 8,
-                }}
-              >
-                <button
-                  onClick={() => setTourStep(null)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#0028af",
-                    cursor: "pointer",
-                  }}
-                >
-                  Pular tour
-                </button>
-                <button
-                  onClick={() => setTourStep(0)}
-                  style={{
-                    background: "#0028af",
-                    color: "#fff",
-                    border: "none",
-                    padding: "4px 8px",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                  }}
-                >
-                  Começar
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <p>{introSteps[tourStep]}</p>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: 8,
-                  marginTop: 8,
-                }}
-              >
-                <button
-                  onClick={() => setTourStep(null)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#0028af",
-                    cursor: "pointer",
-                  }}
-                >
-                  Pular tour
-                </button>
-                <button
-                  onClick={() =>
-                    setTourStep(
-                      tourStep < introSteps.length - 1 ? tourStep + 1 : null
-                    )
-                  }
-                  style={{
-                    background: "#0028af",
-                    color: "#fff",
-                    border: "none",
-                    padding: "4px 8px",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                  }}
-                >
-                  {tourStep < introSteps.length - 1 ? "Próximo" : "Finalizar"}
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
       {(contextMessage || aiReply || showInput) && !disabled && (
         <div
           style={{
-            maxWidth: 300,
+            maxWidth: isMobile ? "92vw" : 300,
+            width: isMobile ? "92vw" : 300,
             background: "#fff",
             border: "1px solid #ccc",
             borderRadius: 12,
@@ -449,6 +476,8 @@ export const GabsIAWidget = ({
             padding: 12,
             marginBottom: 8,
             position: "relative",
+            maxHeight: isMobile ? "60vh" : undefined,
+            overflow: isMobile ? "auto" : "visible",
           }}
         >
           <div
@@ -519,6 +548,7 @@ export const GabsIAWidget = ({
           {showInput && (
             <>
               <input
+                ref={inputRef}
                 value={userMessage}
                 onChange={(e) => setUserMessage(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && sendQuestion()}
@@ -570,7 +600,9 @@ export const GabsIAWidget = ({
                   cursor: "pointer",
                 }}
               >
-                {tourSteps[tourIndex]?.action || "Próximo"}
+                {guidedSteps[tourIndex]?.action === "openChat"
+                  ? "Abrir chat"
+                  : "Próximo"}
               </button>
               <button
                 onClick={skipTour}
@@ -606,10 +638,22 @@ export const GabsIAWidget = ({
         )}
 
         <div
+          ref={avatarRef}
           className="gabs-avatar"
           role="button"
           aria-label="Abrir G•One"
           title="Arraste-me ou clique em um item do portfólio"
+          onDoubleClick={() => {
+            if (disabled) {
+              reopenGabsIAWidget();
+              return;
+            }
+            setContextMessage(null);
+            setAiReply(null);
+            setShowInput(true);
+            setHighlightTarget(null);
+            setTimeout(() => inputRef.current?.focus(), 0);
+          }}
           onClick={() => {
             if (isDragging) return;
             if (disabled) {
@@ -617,14 +661,28 @@ export const GabsIAWidget = ({
               reopenGabsIAWidget();
               return;
             }
+            // Duplo toque no mobile: abre o input diretamente
+            if (isMobile) {
+              const now = Date.now();
+              if (now - (lastTapRef.current || 0) < 300) {
+                setContextMessage(null);
+                setAiReply(null);
+                setShowInput(true);
+                setHighlightTarget(null);
+                setTimeout(() => inputRef.current?.focus(), 0);
+                lastTapRef.current = 0;
+                return;
+              }
+              lastTapRef.current = now;
+            }
             setContextMessage(null);
             setAiReply(null);
             setShowInput((prev) => !prev);
             setHighlightTarget(null);
           }}
           style={{
-            width: 54,
-            height: 54,
+            width: isMobile ? 64 : 54,
+            height: isMobile ? 64 : 54,
             borderRadius: "50%",
             background: "#0028af",
             display: "flex",
@@ -632,10 +690,7 @@ export const GabsIAWidget = ({
             alignItems: "center",
             boxShadow: "0 0 12px rgba(0,0,0,0.2)",
             userSelect: "none",
-            animation:
-              tourStep !== null && !reduceMotion
-                ? "gabs-bounce 1s infinite"
-                : undefined,
+            touchAction: "none",
             overflow: "hidden",
           }}
         >

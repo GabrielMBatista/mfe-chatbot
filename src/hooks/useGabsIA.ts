@@ -13,7 +13,9 @@ export function useGabsIA() {
       try {
         const res = await fetch(`${base}/responses.json`);
         const json = await res.json();
-        setResponses(json);
+        // ignora tourSteps do JSON (fonte única agora é src/tourSteps.ts)
+        const { tourSteps: _ignore, ...bot } = json || {};
+        setResponses(bot);
       } catch (e) {
         console.error("[GabsIA] Falha ao carregar responses.json", e);
       }
@@ -55,5 +57,5 @@ export function useGabsIA() {
     }
   };
 
-  return { askGabs, loading };
+  return { askGabs, loading, responses };
 }
