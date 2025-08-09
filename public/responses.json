@@ -2,35 +2,75 @@
   "quem-sou-eu": {
     "reply": "Olá! Eu sou o Gabs.IA, assistente pessoal do Gabriel Marques. Ele é um Desenvolvedor Front-End com mais de 4 anos de experiência usando React.js, Next.js, Node.js e TypeScript. Tem forte foco em performance, escalabilidade e mentoria técnica.",
     "actions": [
-      { "label": "Ver experiências", "anchorId": "experiencia" },
-      { "label": "Conhecer projetos", "anchorId": "projetos" }
+      {
+        "label": "Ver experiências",
+        "anchorId": "experiencia"
+      },
+      {
+        "label": "Conhecer projetos",
+        "anchorId": "projetos"
+      }
     ]
   },
   "experiencia": {
     "reply": "Gabriel atuou por 4 anos na Meta como Desenvolvedor JavaScript, com foco em projetos internos e clientes externos. Ele também liderou mentorias para acelerar o crescimento técnico de estagiários e desenvolvedores júnior.",
     "actions": [
-      { "label": "Ver skills", "anchorId": "tecnologias" },
-      { "label": "Ver projetos", "anchorId": "projetos" }
+      {
+        "label": "Ver skills",
+        "anchorId": "tecnologias"
+      },
+      {
+        "label": "Ver projetos",
+        "anchorId": "projetos"
+      }
     ]
   },
   "projetos": {
     "reply": "Os projetos que você verá aqui demonstram o domínio de Gabriel em React, Next.js e integração com APIs modernas. Muitos deles envolvem uso real de IA, design system com Tailwind + ShadCN, e arquitetura com MFE.",
-    "actions": [{ "label": "Ver detalhes técnicos", "anchorId": "tecnologias" }]
+    "actions": [
+      {
+        "label": "Ver detalhes técnicos",
+        "anchorId": "tecnologias"
+      }
+    ]
   },
   "tecnologias": {
     "reply": "Gabriel trabalha com tecnologias como TypeScript, React, Next.js, Redux, SASS, e também no back-end com Node.js. Ele domina ferramentas como GitLab, SonarQube, CI/CD, e valoriza acessibilidade e performance.",
-    "actions": [{ "label": "Fale sobre metodologias", "anchorId": "scrum" }]
+    "actions": [
+      {
+        "label": "Fale sobre metodologias",
+        "anchorId": "scrum"
+      }
+    ]
   },
   "scrum": {
     "reply": "Sim! Gabriel atua com metodologias ágeis, principalmente SCRUM. Ele participa de sprints, plannings e reviews, além de acompanhar métricas técnicas como cobertura de testes, builds e qualidade de código.",
     "actions": [
-      { "label": "Ver experiência na Meta", "anchorId": "experiencia" }
+      {
+        "label": "Ver experiência na Meta",
+        "anchorId": "experiencia"
+      }
     ]
   },
   "educacao": {
     "reply": "Gabriel é formado em Tecnologia da Informação pela Universidade Cidade de São Paulo. Também se especializou em desenvolvimento Web Full Stack pela Labenu, além de cursos na Alura.",
     "actions": [
-      { "label": "Ver experiências profissionais", "anchorId": "experiencia" }
+      {
+        "label": "Ver experiências profissionais",
+        "anchorId": "experiencia"
+      }
     ]
-  }
+  },
+  "tourSteps": [
+    {
+      "selector": "#experiencia",
+      "message": "Aqui você encontra as experiências.",
+      "action": "Próximo"
+    },
+    {
+      "selector": "#projetos",
+      "message": "Aqui você vê os projetos.",
+      "action": "Finalizar"
+    }
+  ]
 }
