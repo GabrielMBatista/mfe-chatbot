@@ -14,8 +14,16 @@ export const GabsIAWidget = () => {
   const [aiReply, setAiReply] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showInput, setShowInput] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
+  const [tourStep, setTourStep] = useState<number | null>(-1);
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  const tourSteps = [
+    "Sou o Gabs.IA, seu assistente interativo neste portfólio.",
+    "🖱️ Clique em qualquer elemento interativo para saber mais sobre ele — eu destacarei o item e explicarei como foi feito.",
+    "❓ Clique duas vezes em mim para fazer uma pergunta livre sobre o Gabriel ou seus projetos.",
+    "👋 Você pode me mover pela tela e me ocultar quando quiser.",
+  ];
 
   const widgetRef = useRef<HTMLDivElement>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
@@ -40,6 +48,14 @@ export const GabsIAWidget = () => {
   useEffect(() => {
     const saved = localStorage.getItem(localStorageKey);
     if (saved === "true") setDisabled(true);
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const handleChange = () => setReduceMotion(mediaQuery.matches);
+    handleChange();
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
   useEffect(() => {
@@ -99,15 +115,6 @@ export const GabsIAWidget = () => {
     return () => el?.removeEventListener("mousedown", startDrag as any);
   }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (!widgetRef.current?.contains(e.target as Node)) {
-        setShowInstructions(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   const sendQuestion = async () => {
     if (!userMessage.trim()) return;
@@ -148,7 +155,7 @@ export const GabsIAWidget = () => {
         cursor: "grab",
       }}
     >
-      {showInstructions && (
+      {tourStep !== null && (
         <div
           style={{
             maxWidth: 300,
@@ -161,20 +168,88 @@ export const GabsIAWidget = () => {
             position: "relative",
           }}
         >
-          <div style={{ fontWeight: "bold", marginBottom: 4 }}>Olá! 👋</div>
-          <p>
-            Sou o <strong>Gabs.IA</strong>, seu assistente interativo neste
-            portfólio.
-          </p>
-          <p>
-            🖱️ Clique em qualquer elemento interativo para saber mais sobre ele
-            — eu destacarei o item e explicarei como foi feito.
-          </p>
-          <p>
-            ❓ Clique <strong>duas vezes</strong> em mim para fazer uma pergunta
-            livre sobre o Gabriel ou seus projetos.
-          </p>
-          <p>👋 Você pode me mover pela tela e me ocultar quando quiser.</p>
+          {tourStep === -1 ? (
+            <>
+              <div style={{ fontWeight: "bold", marginBottom: 4 }}>
+                Bem-vindo! 👋
+              </div>
+              <p>Este tour é opcional. Você pode abrir o chat a qualquer momento.</p>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: 8,
+                  marginTop: 8,
+                }}
+              >
+                <button
+                  onClick={() => setTourStep(null)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#0028af",
+                    cursor: "pointer",
+                  }}
+                >
+                  Pular tour
+                </button>
+                <button
+                  onClick={() => setTourStep(0)}
+                  style={{
+                    background: "#0028af",
+                    color: "#fff",
+                    border: "none",
+                    padding: "4px 8px",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                  }}
+                >
+                  Começar
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p>{tourSteps[tourStep]}</p>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: 8,
+                  marginTop: 8,
+                }}
+              >
+                <button
+                  onClick={() => setTourStep(null)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#0028af",
+                    cursor: "pointer",
+                  }}
+                >
+                  Pular tour
+                </button>
+                <button
+                  onClick={() =>
+                    setTourStep(
+                      tourStep < tourSteps.length - 1 ? tourStep + 1 : null
+                    )
+                  }
+                  style={{
+                    background: "#0028af",
+                    color: "#fff",
+                    border: "none",
+                    padding: "4px 8px",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                  }}
+                >
+                  {tourStep < tourSteps.length - 1 ? "Próximo" : "Finalizar"}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -299,6 +374,10 @@ export const GabsIAWidget = () => {
             fontSize: 30,
             boxShadow: "0 0 12px rgba(0,0,0,0.2)",
             userSelect: "none",
+            animation:
+              tourStep !== null && !reduceMotion
+                ? "gabs-bounce 1s infinite"
+                : undefined,
           }}
         >
           🤖
