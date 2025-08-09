@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useGabsIA } from "@/hooks/useGabsIA";
 
 type ButtonAction = { label: string; anchorId: string };
 type BotResponse = { reply: string; actions?: ButtonAction[] };
@@ -20,7 +21,7 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
   const [contextMessage, setContextMessage] = useState<string | null>(null);
   const [userMessage, setUserMessage] = useState("");
   const [aiReply, setAiReply] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { askGabs, loading } = useGabsIA();
   const [showInput, setShowInput] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
@@ -170,25 +171,28 @@ export const GabsIAWidget = ({ tourEnabled = false }: GabsIAWidgetProps) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    const handleOpenChat = () => {
+      setContextMessage(null);
+      setAiReply(null);
+      setShowInput(true);
+      setShowInstructions(false);
+    };
+    window.addEventListener("openChat", handleOpenChat as any);
+    return () => window.removeEventListener("openChat", handleOpenChat as any);
+  }, []);
+
   const sendQuestion = async () => {
     if (!userMessage.trim()) return;
-    setLoading(true);
     setContextMessage(null);
     setAiReply(null);
 
     try {
-      const res = await fetch("/api/gabsia", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage }),
-      });
-
-      const data = await res.json();
+      const data = await askGabs(userMessage);
       setAiReply(data.reply || "Sem resposta.");
     } catch (err) {
       setAiReply("Erro ao se comunicar com a IA.");
     } finally {
-      setLoading(false);
       setUserMessage("");
     }
   };
