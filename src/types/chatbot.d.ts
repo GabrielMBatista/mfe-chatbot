@@ -17,7 +17,6 @@ declare module "Chatbot/GabsIAWidget" {
     fixedPosition?: DockPos;
   };
 
-  // Versão do contrato (mantenha em sincronia com o runtime)
   export const TYPES_VERSION: string;
 
   const Component: React.ComponentType<GabsIAWidgetProps>;

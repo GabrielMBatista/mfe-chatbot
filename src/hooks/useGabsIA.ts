@@ -8,12 +8,12 @@ export function useGabsIA() {
   const [responses, setResponses] = useState<Record<string, BotResponse>>({});
   const base =
     process.env.NEXT_PUBLIC_CHATBOT_ORIGIN || "http://localhost:3001";
+
   useEffect(() => {
     const loadResponses = async () => {
       try {
         const res = await fetch(`${base}/responses.json`);
         const json = await res.json();
-        // ignora tourSteps do JSON (fonte única agora é src/tourSteps.ts)
         const { tourSteps: _ignore, ...bot } = json || {};
         setResponses(bot);
       } catch (e) {
@@ -26,7 +26,6 @@ export function useGabsIA() {
   const askGabs = async (message: string): Promise<BotResponse> => {
     setLoading(true);
 
-    // Primeiro: tenta encontrar anchor no texto
     const anchor = Object.keys(responses).find((key) =>
       message.toLowerCase().includes(key)
     );
@@ -36,7 +35,6 @@ export function useGabsIA() {
       return responses[anchor];
     }
 
-    // Caso não encontre âncora, chama OpenAI
     try {
       const result = await fetch(`${base}/api/gabsia`, {
         method: "POST",

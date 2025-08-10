@@ -4,10 +4,8 @@ import { useGabsIA } from "@/hooks/useGabsIA";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import guidedSteps from "@/tourSteps";
 
-// Versão dos tipos/contrato do widget (atualize ao mudar a API/props/tipos)
 export const TYPES_VERSION = "1.0.0";
 
-// Tipagem global para a função de reabrir o chat
 declare global {
   interface Window {
     reopenGabsIAWidget?: () => void;
@@ -23,7 +21,6 @@ export type DockPos = Partial<{
 
 export type GabsIAWidgetProps = {
   tourEnabled?: boolean;
-  // posição fixa definida pelo shell (ex.: { bottom: 24, right: 24 })
   fixedPosition?: DockPos;
 };
 
@@ -32,31 +29,25 @@ const positionStorageKey = "gabs_position";
 const tourStorageKey = "gabs_tour_skipped";
 const base = process.env.NEXT_PUBLIC_CHATBOT_ORIGIN || "http://localhost:3001";
 
-// Novos assets (servir do origin do MF para evitar 404 no host)
 const ASSETS = {
   anchor: `${base}/widget-anchor.lottie`,
   robot: `${base}/robot-avatar.lottie`,
 };
 
-// Export nomeado para o shell: import { reopenGabsIAWidget } from 'Chatbot/GabsIAWidget'
 export function reopenGabsIAWidget() {
   if (typeof window === "undefined") return;
   try {
-    // desfaz o "Desativar assistente"
     localStorage.removeItem(localStorageKey);
   } catch {}
-  // reabilita o widget e abre o chat
   window.dispatchEvent(new Event("enableGabs"));
   window.dispatchEvent(new Event("openChat"));
 }
 
-// Novo: export para o shell definir posição fixa
 export function pinGabsIAWidgetAt(position: DockPos) {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent("pinGabs", { detail: position } as any));
 }
 
-// Novo: export para desfazer modo fixo
 export function unpinGabsIAWidget() {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new Event("unpinGabs"));
@@ -81,18 +72,13 @@ export const GabsIAWidget = ({
   const [pinned, setPinned] = useState(false);
   const [dockPos, setDockPos] = useState<DockPos>({});
 
-  const [highlightTarget, setHighlightTarget] = useState<HTMLElement | null>(
-    null
-  );
+  const [highlightTarget, setHighlightTarget] = useState<HTMLElement | null>(null);
   const widgetRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastTapRef = useRef<number>(0);
   const dragOffset = useRef({ x: 0, y: 0 });
-  const latestPosRef = useRef<{ left: number; top: number }>({
-    left: 0,
-    top: 0,
-  });
+  const latestPosRef = useRef<{ left: number; top: number }>({ left: 0, top: 0 });
   const [position, setPosition] = useState(() => ({
     top: typeof window !== "undefined" ? window.innerHeight / 3 - 32 : 300,
     left: typeof window !== "undefined" ? window.innerWidth / 3 - 32 : 300,
@@ -115,11 +101,9 @@ export const GabsIAWidget = ({
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      // quando desativado, não reage a anchors/data-gabs
       if (disabled) return;
       const el = (e.target as HTMLElement).closest("[data-gabs]");
       if (!el) return;
-
       const id = el.getAttribute("data-gabs");
       if (id && responses[id]) {
         highlightElement(el as HTMLElement);
@@ -128,7 +112,6 @@ export const GabsIAWidget = ({
         setShowInput(false);
       }
     };
-
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
   }, [responses, disabled]);
@@ -222,7 +205,6 @@ export const GabsIAWidget = ({
     return { left: clampedX, top: clampedY };
   };
 
-  // Carrega a posição salva (quando não pinned) na montagem e ao mudar para enabled
   useEffect(() => {
     try {
       const raw = localStorage.getItem(positionStorageKey);
@@ -263,12 +245,10 @@ export const GabsIAWidget = ({
     };
   }, [pinned, isMobile]);
 
-  // Mantém a posição mais recente em um ref para salvar no término do drag
   useEffect(() => {
     latestPosRef.current = { left: position.left, top: position.top };
   }, [position]);
 
-  // Drag (desktop: container e avatar; mobile: avatar). Bloqueia apenas quando pinned.
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       const { left, top } = clampPosition(
@@ -278,13 +258,9 @@ export const GabsIAWidget = ({
       setPosition({ left, top });
     };
     const onMouseUp = () => {
-      // salva posição ao finalizar drag (se não estiver pinned)
       if (!pinned) {
         try {
-          localStorage.setItem(
-            positionStorageKey,
-            JSON.stringify(latestPosRef.current)
-          );
+          localStorage.setItem(positionStorageKey, JSON.stringify(latestPosRef.current));
         } catch {}
       }
       setTimeout(() => setIsDragging(false), 100);
@@ -295,10 +271,7 @@ export const GabsIAWidget = ({
       if (pinned) return;
       const rect = avatarRef.current?.getBoundingClientRect();
       if (!rect) return;
-      dragOffset.current = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      };
+      dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
       setIsDragging(true);
       window.addEventListener("mousemove", onMouseMove);
       window.addEventListener("mouseup", onMouseUp);
@@ -307,17 +280,12 @@ export const GabsIAWidget = ({
       if (pinned) return;
       const rect = widgetRef.current?.getBoundingClientRect();
       if (!rect) return;
-      dragOffset.current = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      };
+      dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
       setIsDragging(true);
       window.addEventListener("mousemove", onMouseMove);
       window.addEventListener("mouseup", onMouseUp);
     };
-
     const onTouchMove = (e: TouchEvent) => {
-      // evita scroll enquanto arrasta
       e.preventDefault();
       const t = e.touches[0];
       const { left, top } = clampPosition(
@@ -329,10 +297,7 @@ export const GabsIAWidget = ({
     const onTouchEnd = () => {
       if (!pinned) {
         try {
-          localStorage.setItem(
-            positionStorageKey,
-            JSON.stringify(latestPosRef.current)
-          );
+          localStorage.setItem(positionStorageKey, JSON.stringify(latestPosRef.current));
         } catch {}
       }
       setTimeout(() => setIsDragging(false), 100);
@@ -345,18 +310,12 @@ export const GabsIAWidget = ({
       const rect = avatarRef.current?.getBoundingClientRect();
       const t = e.touches[0];
       if (!rect || !t) return;
-      dragOffset.current = {
-        x: t.clientX - rect.left,
-        y: t.clientY - rect.top,
-      };
+      dragOffset.current = { x: t.clientX - rect.left, y: t.clientY - rect.top };
       setIsDragging(true);
-      window.addEventListener("touchmove", onTouchMove as any, {
-        passive: false,
-      });
+      window.addEventListener("touchmove", onTouchMove as any, { passive: false });
       window.addEventListener("touchend", onTouchEnd as any);
       window.addEventListener("touchcancel", onTouchEnd as any);
     };
-
     const el = avatarRef.current;
     el?.addEventListener("mousedown", startMouseOnAvatar as any);
     el?.addEventListener("touchstart", startTouch as any, { passive: false });
@@ -379,14 +338,12 @@ export const GabsIAWidget = ({
     return () => window.removeEventListener("openChat", handleOpenChat as any);
   }, []);
 
-  // Reage ao "enableGabs" para reativar o widget após desfazer o disable
   useEffect(() => {
     const handleEnable = () => setDisabled(false);
     window.addEventListener("enableGabs", handleEnable as any);
     return () => window.removeEventListener("enableGabs", handleEnable as any);
   }, []);
 
-  // pinned segue o estado "disabled": só fixa quando gabs_disabled === "true"
   useEffect(() => {
     if (disabled) {
       setPinned(true);
@@ -398,15 +355,12 @@ export const GabsIAWidget = ({
     }
   }, [disabled, fixedPosition]);
 
-  // Ouve eventos do shell para ajustar posição quando pinned (disabled === true)
   useEffect(() => {
     const onPin = (e: Event) => {
       const detail = (e as CustomEvent<DockPos>).detail || {};
       if (disabled && detail && Object.keys(detail).length) setDockPos(detail);
     };
-    const onUnpin = () => {
-      /* ignorado: pinned é derivado de disabled */
-    };
+    const onUnpin = () => {};
     window.addEventListener("pinGabs", onPin as any);
     window.addEventListener("unpinGabs", onUnpin as any);
     return () => {
@@ -416,7 +370,6 @@ export const GabsIAWidget = ({
   }, []);
 
   useEffect(() => {
-    // expõe função global (compat com chamadas diretas do shell)
     window.reopenGabsIAWidget = () => {
       reopenGabsIAWidget();
     };
@@ -429,18 +382,16 @@ export const GabsIAWidget = ({
     if (!userMessage.trim()) return;
     setContextMessage(null);
     setAiReply(null);
-
     try {
       const data = await askGabs(userMessage);
       setAiReply(data.reply || "Sem resposta.");
-    } catch (err) {
+    } catch {
       setAiReply("Erro ao se comunicar com a IA.");
     } finally {
       setUserMessage("");
     }
   };
 
-  // Estilo de posição: quando pinned (disabled === true), usa fixedPosition (se existir) ou dockPos; senão usa posição arrastável
   const stylePosition: DockPos = pinned
     ? fixedPosition && Object.keys(fixedPosition).length
       ? fixedPosition
@@ -488,19 +439,13 @@ export const GabsIAWidget = ({
               marginBottom: 4,
             }}
           >
-            {/* avatar do robô + título */}
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               {!reduceMotion ? (
                 <DotLottieReact
                   src={ASSETS.robot}
                   loop
                   autoplay
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: "50%",
-                    overflow: "hidden",
-                  }}
+                  style={{ width: 24, height: 24, borderRadius: "50%", overflow: "hidden" }}
                 />
               ) : (
                 <img
@@ -517,14 +462,13 @@ export const GabsIAWidget = ({
             </div>
             <button
               onClick={() => {
-                // fecha o chat e ativa o modo "desativado/fixo"
                 try {
                   localStorage.setItem(localStorageKey, "true");
                 } catch {}
                 setDisabled(true);
                 setContextMessage(null);
                 setAiReply(null);
-                setShowInput(false); // reduz ao canvas básico
+                setShowInput(false);
                 setHighlightTarget(null);
               }}
               style={{
@@ -581,14 +525,7 @@ export const GabsIAWidget = ({
           )}
 
           {tourActive && (
-            <div
-              style={{
-                marginTop: 8,
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 8,
-              }}
-            >
+            <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", gap: 8 }}>
               <button
                 onClick={nextTourStep}
                 style={{
@@ -600,18 +537,11 @@ export const GabsIAWidget = ({
                   cursor: "pointer",
                 }}
               >
-                {guidedSteps[tourIndex]?.action === "openChat"
-                  ? "Abrir chat"
-                  : "Próximo"}
+                {guidedSteps[tourIndex]?.action === "openChat" ? "Abrir chat" : "Próximo"}
               </button>
               <button
                 onClick={skipTour}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#999",
-                  cursor: "pointer",
-                }}
+                style={{ background: "none", border: "none", color: "#999", cursor: "pointer" }}
               >
                 Pular tour
               </button>
@@ -657,11 +587,9 @@ export const GabsIAWidget = ({
           onClick={() => {
             if (isDragging) return;
             if (disabled) {
-              // reativa e abre o chat quando o usuário clicar no avatar
               reopenGabsIAWidget();
               return;
             }
-            // Duplo toque no mobile: abre o input diretamente
             if (isMobile) {
               const now = Date.now();
               if (now - (lastTapRef.current || 0) < 300) {
@@ -695,12 +623,7 @@ export const GabsIAWidget = ({
           }}
         >
           {!reduceMotion ? (
-            <DotLottieReact
-              src={ASSETS.anchor}
-              loop
-              autoplay
-              style={{ width: "100%", height: "100%" }}
-            />
+            <DotLottieReact src={ASSETS.anchor} loop autoplay style={{ width: "100%", height: "100%" }} />
           ) : (
             <img
               src={ASSETS.anchor}

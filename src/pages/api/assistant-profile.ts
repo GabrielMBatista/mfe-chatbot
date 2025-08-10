@@ -1,13 +1,9 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import type { PrismaClient as PrismaClientType } from "@prisma/client";
 
-// Evita bundling do Prisma e corrige "module is not defined"
-const { PrismaClient } = eval("require")("@prisma/client") as {
-  PrismaClient: new () => PrismaClientType;
-};
-
-// Singleton do Prisma em dev
-const prisma: PrismaClientType = (global as any).__prisma || new PrismaClient();
+const PrismaPkg = eval("require")("@prisma/client") as any;
+const prisma: PrismaClientType =
+  (global as any).__prisma || new PrismaPkg.PrismaClient();
 if (process.env.NODE_ENV !== "production") {
   (global as any).__prisma = prisma;
 }
@@ -15,7 +11,6 @@ if (process.env.NODE_ENV !== "production") {
 const PROFILE_ID = process.env.PUBLIC_PROFILE_ID || "public";
 const ALLOW_LOCALHOST = process.env.NEXT_PUBLIC_ALLOW_CORS_LOCALHOST === "true";
 
-// CORS condicional para localhost
 function applyCors(req: NextApiRequest, res: NextApiResponse) {
   const origin = req.headers.origin || "";
   const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(
@@ -34,7 +29,7 @@ function applyCors(req: NextApiRequest, res: NextApiResponse) {
 
     if (req.method === "OPTIONS") {
       res.status(204).end();
-      return true; // encerra o request (pré-flight)
+      return true;
     }
   }
   return false;
@@ -44,7 +39,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (applyCors(req, res)) return; // trata CORS/pré-flight quando habilitado
+  if (applyCors(req, res)) return;
 
   const { method } = req;
 
