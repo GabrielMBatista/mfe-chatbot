@@ -22,6 +22,7 @@ const nextConfig = {
                 },
                 remotes: {
                     shell: `shell@${process.env.NEXT_PUBLIC_SHELL_REMOTE_URL}/_next/static/chunks/remoteEntry.js`,
+                    'chat-store': `chat-store@${process.env.NEXT_PUBLIC_SHELL_REMOTE_URL}/_next/static/chunks/remoteEntry.js`,
                 },
                 shared: {
                     react: {

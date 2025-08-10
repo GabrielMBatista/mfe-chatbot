@@ -3,6 +3,7 @@ import OverlayHighlighter from "./OverlayHighlighter";
 import { useGabsIA } from "@/hooks/useGabsIA";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import guidedSteps from "@/tourSteps";
+import { useChatStore } from "chat-store";
 
 export const TYPES_VERSION = "1.0.0";
 
@@ -59,13 +60,13 @@ export const GabsIAWidget = ({
   fixedPosition,
 }: GabsIAWidgetProps) => {
   const { askGabs, loading, responses } = useGabsIA();
+  const { conversationId, messages, start, append, hydrate } = useChatStore();
   const [tourIndex, setTourIndex] = useState(0);
   const [tourActive, setTourActive] = useState(false);
   const [tourSkipped, setTourSkipped] = useState(false);
   const [disabled, setDisabled] = useState(false);
   const [contextMessage, setContextMessage] = useState<string | null>(null);
   const [userMessage, setUserMessage] = useState("");
-  const [aiReply, setAiReply] = useState<string | null>(null);
   const [showInput, setShowInput] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -91,6 +92,14 @@ export const GabsIAWidget = ({
   }));
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!conversationId) {
+      const cid = new URLSearchParams(window.location.search).get("cid");
+      cid ? hydrate(cid) : start();
+    }
+  }, [conversationId, start, hydrate]);
+
+  useEffect(() => {
     const saved = localStorage.getItem(localStorageKey);
     if (saved === "true") setDisabled(true);
     const skipped = localStorage.getItem(tourStorageKey);
@@ -114,7 +123,6 @@ export const GabsIAWidget = ({
       if (id && responses[id]) {
         highlightElement(el as HTMLElement);
         setContextMessage(responses[id].reply);
-        setAiReply(null);
         setShowInput(false);
       }
     };
@@ -154,7 +162,6 @@ export const GabsIAWidget = ({
       }
     }
     setContextMessage(step.content);
-    setAiReply(null);
     setShowInput(false);
     if (step.action === "openChat") {
       window.dispatchEvent(new Event("openChat"));
@@ -354,7 +361,6 @@ export const GabsIAWidget = ({
   useEffect(() => {
     const handleOpenChat = () => {
       setContextMessage(null);
-      setAiReply(null);
       setShowInput(true);
     };
     window.addEventListener("openChat", handleOpenChat as any);
@@ -403,15 +409,15 @@ export const GabsIAWidget = ({
 
   const sendQuestion = async () => {
     if (!userMessage.trim()) return;
+    const text = userMessage;
+    setUserMessage("");
     setContextMessage(null);
-    setAiReply(null);
+    append({ role: "user", text });
     try {
-      const data = await askGabs(userMessage);
-      setAiReply(data.reply || "Sem resposta.");
+      const data = await askGabs(text, conversationId);
+      append({ role: "assistant", text: data.reply || "Sem resposta." });
     } catch {
-      setAiReply("Erro ao se comunicar com a IA.");
-    } finally {
-      setUserMessage("");
+      append({ role: "assistant", text: "Erro ao se comunicar com a IA." });
     }
   };
 
@@ -438,7 +444,7 @@ export const GabsIAWidget = ({
     >
       {!disabled && <OverlayHighlighter target={highlightTarget} />}
 
-      {(contextMessage || aiReply || showInput) && !disabled && (
+      {(contextMessage || messages.length > 0 || showInput) && !disabled && (
         <div
           style={{
             maxWidth: isMobile ? "92vw" : 300,
@@ -490,12 +496,11 @@ export const GabsIAWidget = ({
             </div>
             <button
               onClick={() => {
-                try {
+              try {
                   localStorage.setItem(localStorageKey, "true");
                 } catch {}
                 setDisabled(true);
                 setContextMessage(null);
-                setAiReply(null);
                 setShowInput(false);
                 setHighlightTarget(null);
               }}
@@ -546,7 +551,9 @@ export const GabsIAWidget = ({
             </div>
           )}
           {contextMessage && <p>{contextMessage}</p>}
-          {aiReply && <p>{aiReply}</p>}
+          {messages.map((m, i) => (
+            <p key={i}>{m.text}</p>
+          ))}
           {showInput && (
             <>
               <input
@@ -635,7 +642,6 @@ export const GabsIAWidget = ({
               return;
             }
             setContextMessage(null);
-            setAiReply(null);
             setShowInput(true);
             setHighlightTarget(null);
             setTimeout(() => inputRef.current?.focus(), 0);
@@ -650,7 +656,6 @@ export const GabsIAWidget = ({
               const now = Date.now();
               if (now - (lastTapRef.current || 0) < 300) {
                 setContextMessage(null);
-                setAiReply(null);
                 setShowInput(true);
                 setHighlightTarget(null);
                 setTimeout(() => inputRef.current?.focus(), 0);
@@ -660,7 +665,6 @@ export const GabsIAWidget = ({
               lastTapRef.current = now;
             }
             setContextMessage(null);
-            setAiReply(null);
             setShowInput((prev) => !prev);
             setHighlightTarget(null);
           }}
