@@ -32,6 +32,7 @@ const base = process.env.NEXT_PUBLIC_CHATBOT_ORIGIN || "http://localhost:3001";
 const ASSETS = {
   anchor: `${base}/widget-anchor.lottie`,
   robot: `${base}/robot-avatar.lottie`,
+  loading: `${base}/Loading.lottie`,
 };
 
 export function reopenGabsIAWidget() {
@@ -513,7 +514,37 @@ export const GabsIAWidget = ({
             </button>
           </div>
 
-          {loading && <p>Gerando resposta...</p>}
+          {loading && !reduceMotion && (
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <DotLottieReact
+                src={ASSETS.loading}
+                loop
+                autoplay
+                style={{ width: 80, height: 80 }}
+              />
+            </div>
+          )}
+          {!loading && !contextMessage && !aiReply && (
+            <div style={{ marginBottom: 8 }}>
+              <p>Bem-vindo!</p>
+              {tourEnabled && !tourActive && !tourSkipped && (
+                <button
+                  onClick={startTour}
+                  style={{
+                    background: "#0028af",
+                    color: "#fff",
+                    border: "none",
+                    padding: "6px 8px",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    marginTop: 4,
+                  }}
+                >
+                  Iniciar tour
+                </button>
+              )}
+            </div>
+          )}
           {contextMessage && <p>{contextMessage}</p>}
           {aiReply && <p>{aiReply}</p>}
           {showInput && (
@@ -592,22 +623,6 @@ export const GabsIAWidget = ({
       )}
 
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        {tourEnabled && !tourActive && !tourSkipped && !disabled && (
-          <button
-            onClick={startTour}
-            style={{
-              background: "#0028af",
-              color: "#fff",
-              border: "none",
-              padding: "6px 8px",
-              borderRadius: 6,
-              cursor: "pointer",
-            }}
-          >
-            Iniciar tour
-          </button>
-        )}
-
         <div
           ref={avatarRef}
           className="gabs-avatar"
