@@ -14,6 +14,7 @@ declare module "Chatbot/GabsIAWidget" {
 
   export type GabsIAWidgetProps = {
     tourEnabled?: boolean;
+    // fixedPosition vindo do Shell força o widget a ficar pinned nessa posição.
     fixedPosition?: DockPos;
   };
 
@@ -25,4 +26,14 @@ declare module "Chatbot/GabsIAWidget" {
   export function reopenGabsIAWidget(): void;
   export function pinGabsIAWidgetAt(position: DockPos): void;
   export function unpinGabsIAWidget(): void;
+}
+
+// Tipagem dos eventos globais usados pelo Shell e pelo Widget.
+declare global {
+  interface WindowEventMap {
+    // Shell pode disparar: new CustomEvent("pinGabs", { detail: { top, left, right, bottom } })
+    pinGabs: CustomEvent<import("Chatbot/GabsIAWidget").DockPos>;
+    // Shell pode disparar: new Event("unpinGabs")
+    unpinGabs: Event;
+  }
 }

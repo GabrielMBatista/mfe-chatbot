@@ -72,13 +72,18 @@ export const GabsIAWidget = ({
   const [pinned, setPinned] = useState(false);
   const [dockPos, setDockPos] = useState<DockPos>({});
 
-  const [highlightTarget, setHighlightTarget] = useState<HTMLElement | null>(null);
+  const [highlightTarget, setHighlightTarget] = useState<HTMLElement | null>(
+    null
+  );
   const widgetRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastTapRef = useRef<number>(0);
   const dragOffset = useRef({ x: 0, y: 0 });
-  const latestPosRef = useRef<{ left: number; top: number }>({ left: 0, top: 0 });
+  const latestPosRef = useRef<{ left: number; top: number }>({
+    left: 0,
+    top: 0,
+  });
   const [position, setPosition] = useState(() => ({
     top: typeof window !== "undefined" ? window.innerHeight / 3 - 32 : 300,
     left: typeof window !== "undefined" ? window.innerWidth / 3 - 32 : 300,
@@ -260,7 +265,10 @@ export const GabsIAWidget = ({
     const onMouseUp = () => {
       if (!pinned) {
         try {
-          localStorage.setItem(positionStorageKey, JSON.stringify(latestPosRef.current));
+          localStorage.setItem(
+            positionStorageKey,
+            JSON.stringify(latestPosRef.current)
+          );
         } catch {}
       }
       setTimeout(() => setIsDragging(false), 100);
@@ -271,7 +279,10 @@ export const GabsIAWidget = ({
       if (pinned) return;
       const rect = avatarRef.current?.getBoundingClientRect();
       if (!rect) return;
-      dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      dragOffset.current = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      };
       setIsDragging(true);
       window.addEventListener("mousemove", onMouseMove);
       window.addEventListener("mouseup", onMouseUp);
@@ -280,7 +291,10 @@ export const GabsIAWidget = ({
       if (pinned) return;
       const rect = widgetRef.current?.getBoundingClientRect();
       if (!rect) return;
-      dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      dragOffset.current = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      };
       setIsDragging(true);
       window.addEventListener("mousemove", onMouseMove);
       window.addEventListener("mouseup", onMouseUp);
@@ -297,7 +311,10 @@ export const GabsIAWidget = ({
     const onTouchEnd = () => {
       if (!pinned) {
         try {
-          localStorage.setItem(positionStorageKey, JSON.stringify(latestPosRef.current));
+          localStorage.setItem(
+            positionStorageKey,
+            JSON.stringify(latestPosRef.current)
+          );
         } catch {}
       }
       setTimeout(() => setIsDragging(false), 100);
@@ -310,9 +327,14 @@ export const GabsIAWidget = ({
       const rect = avatarRef.current?.getBoundingClientRect();
       const t = e.touches[0];
       if (!rect || !t) return;
-      dragOffset.current = { x: t.clientX - rect.left, y: t.clientY - rect.top };
+      dragOffset.current = {
+        x: t.clientX - rect.left,
+        y: t.clientY - rect.top,
+      };
       setIsDragging(true);
-      window.addEventListener("touchmove", onTouchMove as any, { passive: false });
+      window.addEventListener("touchmove", onTouchMove as any, {
+        passive: false,
+      });
       window.addEventListener("touchend", onTouchEnd as any);
       window.addEventListener("touchcancel", onTouchEnd as any);
     };
@@ -445,7 +467,12 @@ export const GabsIAWidget = ({
                   src={ASSETS.robot}
                   loop
                   autoplay
-                  style={{ width: 24, height: 24, borderRadius: "50%", overflow: "hidden" }}
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: "50%",
+                    overflow: "hidden",
+                  }}
                 />
               ) : (
                 <img
@@ -525,7 +552,14 @@ export const GabsIAWidget = ({
           )}
 
           {tourActive && (
-            <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", gap: 8 }}>
+            <div
+              style={{
+                marginTop: 8,
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 8,
+              }}
+            >
               <button
                 onClick={nextTourStep}
                 style={{
@@ -537,11 +571,18 @@ export const GabsIAWidget = ({
                   cursor: "pointer",
                 }}
               >
-                {guidedSteps[tourIndex]?.action === "openChat" ? "Abrir chat" : "Próximo"}
+                {guidedSteps[tourIndex]?.action === "openChat"
+                  ? "Abrir chat"
+                  : "Próximo"}
               </button>
               <button
                 onClick={skipTour}
-                style={{ background: "none", border: "none", color: "#999", cursor: "pointer" }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#999",
+                  cursor: "pointer",
+                }}
               >
                 Pular tour
               </button>
@@ -623,7 +664,12 @@ export const GabsIAWidget = ({
           }}
         >
           {!reduceMotion ? (
-            <DotLottieReact src={ASSETS.anchor} loop autoplay style={{ width: "100%", height: "100%" }} />
+            <DotLottieReact
+              src={ASSETS.anchor}
+              loop
+              autoplay
+              style={{ width: "100%", height: "100%" }}
+            />
           ) : (
             <img
               src={ASSETS.anchor}
