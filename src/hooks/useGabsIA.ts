@@ -23,10 +23,7 @@ export function useGabsIA() {
     loadResponses();
   }, []);
 
-  const askGabs = async (
-    message: string,
-    conversationId?: string
-  ): Promise<BotResponse> => {
+  const askGabs = async (message: string): Promise<BotResponse> => {
     setLoading(true);
 
     const anchor = Object.keys(responses).find((key) =>
@@ -42,7 +39,7 @@ export function useGabsIA() {
       const result = await fetch(`${base}/api/gabsia`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversationId, message }),
+        body: JSON.stringify({ message }),
       });
 
       const data = await result.json();
