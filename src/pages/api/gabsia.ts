@@ -44,7 +44,7 @@ export default async function handler(
 
   if (req.method !== "POST") return res.status(405).end();
 
-  const { conversationId, message } = req.body;
+  const { message } = req.body;
   if (!message) return res.status(400).json({ error: "Mensagem vazia" });
 
   try {
