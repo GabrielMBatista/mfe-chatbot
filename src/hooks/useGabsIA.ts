@@ -2,10 +2,23 @@ import { useState, useEffect } from "react";
 
 export type ButtonAction = { label: string; anchorId: string };
 export type BotResponse = { reply: string; actions?: ButtonAction[] };
+export type HistoryEntry = {
+  question: string;
+  answer: string;
+  owner: "user" | "gone";
+};
 
 export function useGabsIA() {
   const [loading, setLoading] = useState(false);
   const [responses, setResponses] = useState<Record<string, BotResponse>>({});
+  const [history, setHistory] = useState<HistoryEntry[]>(() => {
+    try {
+      const savedHistory = localStorage.getItem("gabs_chat_history");
+      return savedHistory ? JSON.parse(savedHistory) : [];
+    } catch {
+      return [];
+    }
+  });
   const base =
     process.env.NEXT_PUBLIC_CHATBOT_ORIGIN || "http://localhost:3001";
 
@@ -31,8 +44,27 @@ export function useGabsIA() {
     );
 
     if (anchor) {
+      const response = responses[anchor];
+      setHistory((prev) => {
+        const updatedHistory = prev.some(
+          (entry) =>
+            entry.question === message &&
+            entry.answer === response.reply &&
+            entry.owner === "gone"
+        )
+          ? prev
+          : [
+              ...prev,
+              { question: message, answer: response.reply, owner: "gone" as const },
+            ];
+        localStorage.setItem(
+          "gabs_chat_history",
+          JSON.stringify(updatedHistory)
+        );
+        return updatedHistory;
+      });
       setLoading(false);
-      return responses[anchor];
+      return response;
     }
 
     try {
@@ -43,6 +75,21 @@ export function useGabsIA() {
       });
 
       const data = await result.json();
+      setHistory((prev) => {
+        const updatedHistory = prev.some(
+          (entry) =>
+            entry.question === message &&
+            entry.answer === data.reply &&
+            entry.owner === "gone"
+        )
+          ? prev
+          : [...prev, { question: message, answer: data.reply, owner: "gone" as const }];
+        localStorage.setItem(
+          "gabs_chat_history",
+          JSON.stringify(updatedHistory)
+        );
+        return updatedHistory;
+      });
       setLoading(false);
       return data;
     } catch (e) {
@@ -55,5 +102,5 @@ export function useGabsIA() {
     }
   };
 
-  return { askGabs, loading, responses };
+  return { askGabs, loading, responses, history };
 }
