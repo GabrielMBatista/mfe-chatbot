@@ -1,9 +1,7 @@
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
-import ReactDOM from "react-dom";
 import { GabsIAWidgetProps, useGabsIAWidget } from "@/hooks/useGabsIAWidget";
 
 export const GabsIAWidget = ({
-  tourEnabled = false,
   fixedPosition,
 }: GabsIAWidgetProps) => {
   const {
@@ -18,8 +16,6 @@ export const GabsIAWidget = ({
     setUserMessage,
     aiReply,
     setAiReply,
-    showInput,
-    setShowInput,
     isDragging,
     setIsDragging,
     reduceMotion,
@@ -80,148 +76,146 @@ export const GabsIAWidget = ({
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
-        {(contextMessage || aiReply || showInput || history.length > 0) &&
-          !disabled && (
+        {(contextMessage || aiReply || history.length > 0) && !disabled && (
+          <div
+            style={{
+              maxWidth: isMobile ? "92vw" : 300,
+              width: isMobile ? "92vw" : 300,
+              background: "#fff",
+              border: "1px solid #ccc",
+              borderRadius: 12,
+              boxShadow: "0 0 10px rgba(0,0,0,0.2)",
+              padding: 5,
+              marginBottom: 8,
+              position: "relative",
+              maxHeight: isMobile ? "60vh" : "400px",
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
             <div
               style={{
-                maxWidth: isMobile ? "92vw" : 300,
-                width: isMobile ? "92vw" : 300,
-                background: "#fff",
-                border: "1px solid #ccc",
-                borderRadius: 12,
-                boxShadow: "0 0 10px rgba(0,0,0,0.2)",
-                padding: 5,
-                marginBottom: 8,
-                position: "relative",
-                maxHeight: isMobile ? "60vh" : "400px",
-                overflowY: "auto",
                 display: "flex",
-                flexDirection: "column",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 4,
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 4,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <strong>G•One</strong>
-                </div>
-                <button
-                  onClick={() => {
-                    try {
-                      localStorage.setItem(localStorageKey, "true");
-                    } catch {}
-                    setDisabled(true);
-                    setContextMessage(null);
-                    setAiReply(null);
-                    setShowInput(false);
-                  }}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    fontSize: 16,
-                    cursor: "pointer",
-                    color: "#999",
-                    padding: 0,
-                    margin: 0,
-                  }}
-                  title="Fechar"
-                >
-                  ✖
-                </button>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <strong>G•One</strong>
               </div>
-
-              <div
-                ref={chatContainerRef}
-                style={{
-                  flex: 1,
-                  overflowY: "auto",
-                  marginBottom: 8,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                  scrollbarWidth: "thin",
-                  scrollbarColor: "#0028af #f1f1f1",
+              <button
+                onClick={() => {
+                  try {
+                    localStorage.setItem(localStorageKey, "true");
+                  } catch {}
+                  setDisabled(true);
+                  setContextMessage(null);
+                  setAiReply(null);
                 }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: 16,
+                  cursor: "pointer",
+                  color: "#999",
+                  padding: 0,
+                  margin: 0,
+                }}
+                title="Fechar"
               >
-                {history.map((entry, index) => (
+                ✖
+              </button>
+            </div>
+
+            <div
+              ref={chatContainerRef}
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                marginBottom: 8,
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                scrollbarWidth: "thin",
+                scrollbarColor: "#0028af #f1f1f1",
+              }}
+            >
+              {history.map((entry, index) => (
+                <div
+                  key={index}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems:
+                      entry.owner === "user" ? "flex-end" : "flex-start",
+                    textAlign: entry.owner === "user" ? "right" : "left",
+                  }}
+                >
                   <div
-                    key={index}
                     style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems:
-                        entry.owner === "user" ? "flex-end" : "flex-start",
-                      textAlign: entry.owner === "user" ? "right" : "left",
+                      background:
+                        entry.owner === "user" ? "#0028af" : "#f1f1f1",
+                      color: entry.owner === "user" ? "#fff" : "#000",
+                      padding: "10px 14px",
+                      borderRadius:
+                        entry.owner === "user"
+                          ? "12px 0 12px 12px"
+                          : "0 12px 12px 12px",
+                      maxWidth: "80%",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
                     }}
                   >
-                    <div
+                    <p
                       style={{
-                        background:
-                          entry.owner === "user" ? "#0028af" : "#f1f1f1",
-                        color: entry.owner === "user" ? "#fff" : "#000",
-                        padding: "10px 14px",
-                        borderRadius:
-                          entry.owner === "user"
-                            ? "12px 0 12px 12px"
-                            : "0 12px 12px 12px",
-                        maxWidth: "80%",
-                        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                        margin: 0,
+                        fontSize: "14px",
+                        lineHeight: "1.4",
                       }}
                     >
-                      <p
-                        style={{
-                          margin: 0,
-                          fontSize: "14px",
-                          lineHeight: "1.4",
-                        }}
-                      >
-                        {entry.owner === "user" ? entry.question : entry.answer}
-                      </p>
-                    </div>
+                      {entry.owner === "user" ? entry.question : entry.answer}
+                    </p>
                   </div>
-                ))}
-              </div>
-
-              {showInput && (
-                <>
-                  <input
-                    ref={inputRef}
-                    value={userMessage}
-                    onChange={(e) => setUserMessage(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && sendQuestion()}
-                    placeholder="Digite sua pergunta"
-                    style={{
-                      width: "100%",
-                      padding: "8px 10px",
-                      border: "1px solid #ccc",
-                      borderRadius: 6,
-                      boxSizing: "border-box",
-                    }}
-                  />
-                  <button
-                    onClick={sendQuestion}
-                    style={{
-                      marginTop: 6,
-                      background: "#0028af",
-                      color: "#fff",
-                      border: "none",
-                      padding: "6px 12px",
-                      borderRadius: 6,
-                      cursor: "pointer",
-                      width: "100%",
-                    }}
-                  >
-                    Perguntar
-                  </button>
-                </>
-              )}
+                </div>
+              ))}
             </div>
-          )}
+
+            {
+              <>
+                <input
+                  ref={inputRef}
+                  value={userMessage}
+                  onChange={(e) => setUserMessage(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && sendQuestion()}
+                  placeholder="Digite sua pergunta"
+                  style={{
+                    width: "100%",
+                    padding: "8px 10px",
+                    border: "1px solid #ccc",
+                    borderRadius: 6,
+                    boxSizing: "border-box",
+                  }}
+                />
+                <button
+                  onClick={sendQuestion}
+                  style={{
+                    marginTop: 6,
+                    background: "#0028af",
+                    color: "#fff",
+                    border: "none",
+                    padding: "6px 12px",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    width: "100%",
+                  }}
+                >
+                  Perguntar
+                </button>
+              </>
+            }
+          </div>
+        )}
 
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <div
@@ -237,7 +231,6 @@ export const GabsIAWidget = ({
               }
               setContextMessage(null);
               setAiReply(null);
-              setShowInput(true);
               setTimeout(() => inputRef.current?.focus(), 0);
             }}
             onClick={() => {
@@ -251,7 +244,7 @@ export const GabsIAWidget = ({
                 if (now - (lastTapRef.current || 0) < 300) {
                   setContextMessage(null);
                   setAiReply(null);
-                  setShowInput(true);
+
                   setTimeout(() => inputRef.current?.focus(), 0);
                   lastTapRef.current = 0;
                   return;
@@ -260,7 +253,6 @@ export const GabsIAWidget = ({
               }
               setContextMessage(null);
               setAiReply(null);
-              setShowInput((prev) => !prev);
             }}
             style={{
               width: isMobile ? 64 : 54,
