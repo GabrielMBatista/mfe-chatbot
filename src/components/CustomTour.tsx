@@ -176,7 +176,6 @@ export const CustomTour: React.FC<CustomTourProps> = ({
     <>
       {/* Overlay */}
       <div
-        className="fixed inset-0 bg-black/40 z-40"
         style={{ pointerEvents: "auto" }}
       />
 
@@ -189,13 +188,13 @@ export const CustomTour: React.FC<CustomTourProps> = ({
             top: targetRect.top - 8,
             width: targetRect.width + 16,
             height: targetRect.height + 16,
-            border: "3px solid hsl(var(--primary))",
-            borderRadius: "12px",
             boxShadow: `
               0 0 0 4px hsl(var(--primary) / 0.2),
-              0 0 0 9999px rgba(0, 0, 0, 0.4)
+              0 0 0 9999px rgba(0, 0, 0, 0.5)
             `,
-            animation: "pulse 2s infinite",
+            border: "3px solid hsl(var(--primary))",
+            borderRadius: "12px",
+            background: "transparent", // Adicionado para evitar sobreposição
           }}
         />
       )}
