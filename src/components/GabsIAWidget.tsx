@@ -1,9 +1,10 @@
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { GabsIAWidgetProps, useGabsIAWidget } from "@/hooks/useGabsIAWidget";
+import { HelpCircle } from "lucide-react";
+import { useState } from "react";
+import { CustomTour } from "@/components/CustomTour";
 
-export const GabsIAWidget = ({
-  fixedPosition,
-}: GabsIAWidgetProps) => {
+export const GabsIAWidget = ({ fixedPosition }: GabsIAWidgetProps) => {
   const {
     reopenGabsIAWidget,
     history,
@@ -36,8 +37,28 @@ export const GabsIAWidget = ({
     ontouchend,
   } = useGabsIAWidget(fixedPosition);
 
+  const [tourState, setTourState] = useState({
+    run: false,
+    steps: [
+      {
+        target: ".gabs-avatar",
+        content: "Este é o assistente G•One. Clique para interagir!",
+      },
+    ],
+  });
+
+  const startTour = () => setTourState((prev) => ({ ...prev, run: true }));
+  const handleTourComplete = () =>
+    setTourState((prev) => ({ ...prev, run: false }));
+
   return (
     <>
+      <CustomTour
+        steps={tourState.steps}
+        isRunning={tourState.run}
+        onComplete={handleTourComplete}
+        onSkip={handleTourComplete}
+      />
       <div
         ref={widgetRef}
         onMouseDown={(e: React.MouseEvent) => {
@@ -103,7 +124,13 @@ export const GabsIAWidget = ({
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <strong>G•One</strong>
+                <strong>G•One</strong>{" "}
+                <HelpCircle
+                  size={24}
+                  color="#0028af"
+                  onClick={startTour}
+                  style={{ cursor: "pointer" }}
+                />
               </div>
               <button
                 onClick={() => {
@@ -310,4 +337,5 @@ export const GabsIAWidget = ({
   );
 };
 
+export { HelpCircle };
 export default GabsIAWidget;
