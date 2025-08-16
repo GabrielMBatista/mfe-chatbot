@@ -12,12 +12,16 @@ interface ErrorPageProps {
 }
 
 const ErrorPage: NextPage<ErrorPageProps> = ({ statusCode, message }) => {
-  return <ErrorClient statusCode={statusCode} message={message} />;
+  return (
+    <div className="flex flex-col items-center justify-center h-screen">
+      <ErrorClient statusCode={statusCode} message={message} />
+    </div>
+  );
 };
 
 ErrorPage.getInitialProps = ({ res, err }: NextPageContext) => {
   const statusCode = res?.statusCode || err?.statusCode || 500;
-  const message = err?.message || "An unexpected error occurred.";
+  const message = err?.message || "Ocorreu um erro inesperado.";
   return { statusCode, message };
 };
 
