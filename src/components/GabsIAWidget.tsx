@@ -1,10 +1,6 @@
-import OverlayHighlighter from "./OverlayHighlighter";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import ReactDOM from "react-dom";
 import { GabsIAWidgetProps, useGabsIAWidget } from "@/hooks/useGabsIAWidget";
-import WelcomeModal from './WelcomeModal';
-import DataGabsModal from './DataGabsModal';
-
 
 export const GabsIAWidget = ({
   tourEnabled = false,
@@ -14,12 +10,6 @@ export const GabsIAWidget = ({
     reopenGabsIAWidget,
     history,
     setHistory,
-    tourIndex,
-    setTourIndex,
-    tourActive,
-    setTourActive,
-    tourSkipped,
-    setTourSkipped,
     disabled,
     setDisabled,
     contextMessage,
@@ -33,28 +23,16 @@ export const GabsIAWidget = ({
     isDragging,
     setIsDragging,
     reduceMotion,
-    setReduceMotion,
     isMobile,
-    pinned,
-    highlightTarget,
     widgetRef,
     avatarRef,
     inputRef,
     lastTapRef,
-    position,
-    setPosition,
     chatContainerRef,
-    showWelcomeModal,
-    setShowWelcomeModal,
-    dataGabsModal,
-    setDataGabsModal,
-    enableHighlightMode,
     sendQuestion,
     stylePosition,
-    startTour,
     localStorageKey,
     ASSETS,
-    setHighlightTarget,
     dragOffset,
     onmousemove,
     onmouseup,
@@ -64,25 +42,6 @@ export const GabsIAWidget = ({
 
   return (
     <>
-      {showWelcomeModal && (
-        <WelcomeModal
-          onClose={() => setShowWelcomeModal(false)}
-          onStartTour={() => {
-            setShowWelcomeModal(false);
-            startTour();
-          }}
-          onEnableHighlightMode={enableHighlightMode}
-        />
-      )}
-      {dataGabsModal &&
-        ReactDOM.createPortal(
-          <DataGabsModal
-            position={dataGabsModal.position}
-            content={dataGabsModal.content}
-            onClose={() => setDataGabsModal(null)}
-          />,
-          document.body
-        )}
       <div
         ref={widgetRef}
         onMouseDown={(e: React.MouseEvent) => {
@@ -121,8 +80,6 @@ export const GabsIAWidget = ({
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
-        {!disabled && <OverlayHighlighter target={highlightTarget} />}
-
         {(contextMessage || aiReply || showInput || history.length > 0) &&
           !disabled && (
             <div
@@ -162,7 +119,6 @@ export const GabsIAWidget = ({
                     setContextMessage(null);
                     setAiReply(null);
                     setShowInput(false);
-                    setHighlightTarget(null);
                   }}
                   style={{
                     background: "none",
@@ -282,7 +238,6 @@ export const GabsIAWidget = ({
               setContextMessage(null);
               setAiReply(null);
               setShowInput(true);
-              setHighlightTarget(null);
               setTimeout(() => inputRef.current?.focus(), 0);
             }}
             onClick={() => {
@@ -297,7 +252,6 @@ export const GabsIAWidget = ({
                   setContextMessage(null);
                   setAiReply(null);
                   setShowInput(true);
-                  setHighlightTarget(null);
                   setTimeout(() => inputRef.current?.focus(), 0);
                   lastTapRef.current = 0;
                   return;
@@ -307,7 +261,6 @@ export const GabsIAWidget = ({
               setContextMessage(null);
               setAiReply(null);
               setShowInput((prev) => !prev);
-              setHighlightTarget(null);
             }}
             style={{
               width: isMobile ? 64 : 54,

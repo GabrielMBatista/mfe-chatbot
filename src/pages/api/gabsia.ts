@@ -82,7 +82,7 @@ export default async function handler(
     - Modelo: ${model || "gpt-3.5-turbo"}
     
     Objetivos principais:
-    - Explicar itens e áreas do site acionados por data-gabs.
+    - Explicar itens e áreas do site acionados por data-gabs em 3 palavras.
     - Responder dúvidas técnicas sobre projetos e componentes.
     - Mostrar como diferentes partes do portfólio se integram (ex.: shell principal, MFEs, bibliotecas internas).
     - Fornecer contexto arquitetural para cada módulo, função ou componente.

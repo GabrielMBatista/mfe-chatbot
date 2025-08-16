@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { CustomTour } from "@/components/CustomTour";
-import { tourSteps as defaultTourSteps } from "@/tourSteps";
 import { HelpCircle } from "lucide-react";
 
 type AssistantProfile = {

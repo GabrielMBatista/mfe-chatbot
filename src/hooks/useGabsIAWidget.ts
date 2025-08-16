@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useGabsIA } from "@/hooks/useGabsIA";
-import guidedSteps from "@/tourSteps"; // Importar guidedSteps
 
 export const TYPES_VERSION = "1.0.0";
 
@@ -51,9 +50,6 @@ export function useGabsIAWidget(fixedPosition?: DockPos) {
       actions?: { label: string; anchorId: string }[];
     }[]
   >([]);
-  const [tourIndex, setTourIndex] = useState(0);
-  const [tourActive, setTourActive] = useState(false);
-  const [tourSkipped, setTourSkipped] = useState(false);
   const [disabled, setDisabled] = useState(false);
   const [contextMessage, setContextMessage] = useState<string | null>(null);
   const [userMessage, setUserMessage] = useState("");
@@ -64,9 +60,6 @@ export function useGabsIAWidget(fixedPosition?: DockPos) {
   const [isMobile, setIsMobile] = useState(false);
   const [pinned, setPinned] = useState(false);
   const [dockPos, setDockPos] = useState<DockPos>({});
-  const [highlightTarget, setHighlightTarget] = useState<HTMLElement | null>(
-    null
-  );
   const widgetRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -82,19 +75,6 @@ export function useGabsIAWidget(fixedPosition?: DockPos) {
   }));
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
-  const [highlightMode, setHighlightMode] = useState(false);
-  const [dataGabsModal, setDataGabsModal] = useState<{
-    position: { top: number; left: number; width: number; height: number };
-    content: string;
-  } | null>(null);
-
-  const enableHighlightMode = () => {
-    setHighlightMode(true);
-    localStorage.setItem("data-gabs", "true");
-    setShowWelcomeModal(false);
-  };
-
   const reopenGabsIAWidget = (
     setHistory: React.Dispatch<React.SetStateAction<any[]>>
   ) => {
@@ -124,7 +104,6 @@ export function useGabsIAWidget(fixedPosition?: DockPos) {
 
   const sendQuestion = async () => {
     if (!userMessage.trim()) return;
-    handleKeywordDetection(userMessage);
     setHistory((prev) => [
       ...prev,
       { question: userMessage, answer: "", owner: "user" },
@@ -173,87 +152,6 @@ export function useGabsIAWidget(fixedPosition?: DockPos) {
       : dockPos
     : { top: position.top, left: position.left };
 
-  const startTour = () => {
-    if (!guidedSteps.length) return;
-    setTourActive(true);
-    setTourIndex(0);
-    runTourStep(0);
-  };
-
-  const handleKeywordDetection = (message: string) => {
-    const keywords = ["tour", "sugestões", "guia", "ajuda", "contato", "sobre"];
-    const lowerMessage = message.toLowerCase();
-    if (keywords.some((keyword) => lowerMessage.includes(keyword))) {
-      if (
-        ["tour", "sugestões", "guia", "ajuda"].some((kw) =>
-          lowerMessage.includes(kw)
-        )
-      ) {
-        setShowWelcomeModal(true);
-      } else if (lowerMessage.includes("contato")) {
-        window.location.href = "/contato";
-      } else if (lowerMessage.includes("sobre")) {
-        window.location.href = "/sobre";
-      }
-    }
-  };
-
-  const runTourStep = (index: number) => {
-    const step = guidedSteps[index];
-    if (!step) {
-      setTourActive(false);
-      setContextMessage(null);
-      return;
-    }
-    const el = step.target
-      ? (document.querySelector(step.target) as HTMLElement | null)
-      : null;
-    if (el) {
-      highlightElement(el);
-      const rect = el.getBoundingClientRect();
-      setPosition({
-        top: rect.top + window.scrollY - 80,
-        left: rect.left + window.scrollX - 80,
-      });
-      if (step.action === "click") {
-        (el as HTMLElement).click();
-      }
-    }
-    setContextMessage(step.content);
-    setAiReply(null);
-    setShowInput(false);
-    if (step.action === "openChat") {
-      window.dispatchEvent(new Event("openChat"));
-    }
-  };
-
-  const highlightElement = (el: HTMLElement) => {
-    setHighlightTarget(el);
-    el.style.outline = "2px solid #0028af";
-    el.style.transition = "outline 0.3s";
-    setTimeout(() => {
-      el.style.outline = "";
-      setHighlightTarget(null);
-    }, 2000);
-  };
-
-  useEffect(() => {
-    const saved = localStorage.getItem(localStorageKey);
-    if (saved !== "true") {
-      setDisabled(false);
-      setShowInput(true);
-
-      const firstAccess = localStorage.getItem("gabs_first_access");
-      if (!firstAccess) {
-        setShowWelcomeModal(true);
-        localStorage.setItem("gabs_first_access", "true");
-      }
-    } else {
-      setDisabled(true);
-    }
-    const skipped = localStorage.getItem(tourStorageKey);
-    if (skipped === "true") setTourSkipped(true);
-  }, []);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -262,40 +160,6 @@ export function useGabsIAWidget(fixedPosition?: DockPos) {
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
-
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      const el = (e.target as HTMLElement).closest("[data-gabs]");
-      if (!el) return;
-      const id = el.getAttribute("data-gabs");
-      if (id) {
-        const rect = el.getBoundingClientRect();
-        const modalWidth = Math.min(window.innerWidth * 0.9, 400);
-        const modalHeight = Math.min(window.innerHeight * 0.8, 300);
-        const modalPosition = {
-          top: Math.min(rect.bottom + 8, window.innerHeight - modalHeight - 16),
-          left: Math.min(rect.left, window.innerWidth - modalWidth - 16),
-          width: modalWidth,
-          height: modalHeight,
-        };
-        askGabs(id)
-          .then((response: { reply: string }) => {
-            setDataGabsModal({
-              position: modalPosition,
-              content: response.reply,
-            });
-          })
-          .catch(() => {
-            setDataGabsModal({
-              position: modalPosition,
-              content: "Não consegui obter informações sobre este item.",
-            });
-          });
-      }
-    };
-    document.addEventListener("click", handleClick);
-    return () => document.removeEventListener("click", handleClick);
-  }, [askGabs]);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 768px)");
@@ -425,20 +289,6 @@ export function useGabsIAWidget(fixedPosition?: DockPos) {
     }
   }, [history]);
 
-  useEffect(() => {
-    if (highlightMode) {
-      const elements = document.querySelectorAll("[data-gabs]");
-      elements.forEach((el) => {
-        (el as HTMLElement).style.outline = "2px dashed #0028af";
-        (el as HTMLElement).style.transition = "outline 0.3s";
-      });
-      return () => {
-        elements.forEach((el) => {
-          (el as HTMLElement).style.outline = "";
-        });
-      };
-    }
-  }, [highlightMode]);
 
   const onmousemove = (e: MouseEvent): void => {
     const { left, top } = clampPosition(
@@ -533,12 +383,6 @@ export function useGabsIAWidget(fixedPosition?: DockPos) {
   return {
     history,
     setHistory,
-    tourIndex,
-    setTourIndex,
-    tourActive,
-    setTourActive,
-    tourSkipped,
-    setTourSkipped,
     disabled,
     setDisabled,
     contextMessage,
@@ -559,8 +403,6 @@ export function useGabsIAWidget(fixedPosition?: DockPos) {
     setPinned,
     dockPos,
     setDockPos,
-    highlightTarget,
-    setHighlightTarget,
     widgetRef,
     avatarRef,
     inputRef,
@@ -570,13 +412,6 @@ export function useGabsIAWidget(fixedPosition?: DockPos) {
     position,
     setPosition,
     chatContainerRef,
-    showWelcomeModal,
-    setShowWelcomeModal,
-    highlightMode,
-    setHighlightMode,
-    dataGabsModal,
-    setDataGabsModal,
-    enableHighlightMode,
     reopenGabsIAWidget,
     pinGabsIAWidgetAt,
     unpinGabsIAWidget,
@@ -585,9 +420,6 @@ export function useGabsIAWidget(fixedPosition?: DockPos) {
     responses,
     sendQuestion,
     stylePosition,
-    startTour,
-    handleKeywordDetection,
-    runTourStep,
     localStorageKey,
     ASSETS,
     onmousemove,
