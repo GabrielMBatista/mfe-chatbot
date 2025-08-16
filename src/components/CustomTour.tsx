@@ -18,6 +18,60 @@ interface CustomTourProps {
   isContextualHelp?: boolean; // Whether this is contextual help mode
 }
 
+type Tokens = {
+  primary: string; // hsl triplet
+  card: string; // hsl triplet
+  border: string; // hsl triplet
+  shadowStrong: string; // full box-shadow
+  muted: string; // hsl triplet
+  mutedForeground: string; // hsl triplet
+};
+
+const tokensLight: Tokens = {
+  primary: "8 86% 65%",
+  card: "0 0% 100%",
+  border: "220 13% 91%",
+  shadowStrong: "0 20px 40px -12px hsl(8 86% 65% / 0.25)",
+  muted: "220 14% 95%",
+  mutedForeground: "215 16% 47%",
+};
+
+const tokensDark: Tokens = {
+  primary: "8 86% 65%",
+  card: "225 15% 10%",
+  border: "215 25% 20%",
+  shadowStrong: "0 20px 40px -12px hsl(0 0% 0% / 0.6)",
+  muted: "215 25% 15%",
+  mutedForeground: "217 10% 65%",
+};
+
+const hsl = (v: string, a?: number) =>
+  a == null ? `hsl(${v})` : `hsl(${v} / ${a})`;
+
+/** Usa .dark no <html> para alternar entre tokens locais */
+function useLocalTokens(): Tokens {
+  const getIsDark = () =>
+    typeof document !== "undefined" &&
+    document.documentElement.classList.contains("dark");
+
+  const [isDark, setIsDark] = useState<boolean>(getIsDark);
+
+  useEffect(() => {
+    const html = document.documentElement;
+    const obs = new MutationObserver(() => setIsDark(getIsDark()));
+    obs.observe(html, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
+
+  return isDark ? tokensDark : tokensLight;
+}
+
+function injectStyles(styles: string, targetDocument: Document = document) {
+  const styleElement = targetDocument.createElement("style");
+  styleElement.textContent = styles;
+  targetDocument.head.appendChild(styleElement);
+}
+
 export const CustomTour: React.FC<CustomTourProps> = ({
   steps,
   isRunning,
@@ -26,6 +80,32 @@ export const CustomTour: React.FC<CustomTourProps> = ({
   specificStep,
   isContextualHelp = false,
 }) => {
+  const t = useLocalTokens();
+
+  useEffect(() => {
+    const styles = `
+      .custom-tour-tooltip {
+        position: fixed;
+        z-index: 50;
+        max-width: 24rem;
+        max-height: 80vh;
+        overflow-y: auto;
+        border-radius: 12px;
+        transition: all 0.3s ease-in-out;
+      }
+      .custom-tour-overlay {
+        position: fixed;
+        z-index: 40;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+      }
+    `;
+    injectStyles(styles);
+  }, []);
+
   const [currentStep, setCurrentStep] = useState(specificStep ?? 0);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
@@ -47,7 +127,6 @@ export const CustomTour: React.FC<CustomTourProps> = ({
         x = window.innerWidth / 2 - tooltipSize.width / 2;
         y = window.innerHeight / 2 - tooltipSize.height / 2;
       } else {
-        // Calculate initial position based on placement
         switch (placement) {
           case "top":
             x = rect.left + scrollX + rect.width / 2 - tooltipSize.width / 2;
@@ -66,32 +145,23 @@ export const CustomTour: React.FC<CustomTourProps> = ({
             y = rect.top + scrollY + rect.height / 2 - tooltipSize.height / 2;
             break;
           default:
-            // Default to bottom
             x = rect.left + scrollX + rect.width / 2 - tooltipSize.width / 2;
             y = rect.bottom + scrollY + 15;
         }
 
-        // Adjust if tooltip goes outside viewport boundaries
         const margin = 20;
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
 
-        // Horizontal adjustments
-        if (x < margin) {
-          x = margin;
-        } else if (x + tooltipSize.width > viewportWidth - margin) {
+        if (x < margin) x = margin;
+        else if (x + tooltipSize.width > viewportWidth - margin) {
           x = viewportWidth - tooltipSize.width - margin;
         }
 
-        // Vertical adjustments
         if (y < margin + scrollY) {
-          // If tooltip goes above viewport, place it below the target
           y = rect.bottom + scrollY + 15;
         } else if (y + tooltipSize.height > viewportHeight + scrollY - margin) {
-          // If tooltip goes below viewport, place it above the target
           y = rect.top + scrollY - tooltipSize.height - 15;
-
-          // If still doesn't fit above, place it in the center
           if (y < margin + scrollY) {
             y = rect.top + scrollY + rect.height / 2 - tooltipSize.height / 2;
           }
@@ -103,7 +173,7 @@ export const CustomTour: React.FC<CustomTourProps> = ({
     [tooltipSize]
   );
 
-  // Update tooltip size when it renders
+  // Atualiza o tamanho do tooltip quando renderiza
   useEffect(() => {
     if (tooltipRef.current) {
       const { offsetWidth, offsetHeight } = tooltipRef.current;
@@ -111,14 +181,12 @@ export const CustomTour: React.FC<CustomTourProps> = ({
     }
   }, [currentStep, isRunning]);
 
-  // Recalculate position on resize
+  // Recalcula em resize
   useEffect(() => {
     const handleResize = () => {
       if (!isRunning || !steps[currentStep]) return;
-
       const targetSelector = steps[currentStep].target;
       const targetElement = document.querySelector(targetSelector);
-
       if (targetElement) {
         calculatePosition(targetElement, steps[currentStep].placement);
       }
@@ -128,9 +196,9 @@ export const CustomTour: React.FC<CustomTourProps> = ({
     return () => window.removeEventListener("resize", handleResize);
   }, [currentStep, isRunning, steps, calculatePosition]);
 
+  // Posiciona ao mudar o passo
   useEffect(() => {
     if (!isRunning || !steps[currentStep]) return;
-
     const targetSelector = steps[currentStep].target;
     const targetElement = document.querySelector(targetSelector);
 
@@ -142,30 +210,21 @@ export const CustomTour: React.FC<CustomTourProps> = ({
     }
   }, [currentStep, isRunning, steps, calculatePosition]);
 
-  // Reset current step when specificStep changes
+  // Reseta quando vem specificStep
   useEffect(() => {
-    if (specificStep !== undefined) {
-      setCurrentStep(specificStep);
-    }
+    if (specificStep !== undefined) setCurrentStep(specificStep);
   }, [specificStep]);
 
   const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      onComplete();
-    }
+    if (currentStep < steps.length - 1) setCurrentStep(currentStep + 1);
+    else onComplete();
   };
 
   const handlePrev = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
+    if (currentStep > 0) setCurrentStep(currentStep - 1);
   };
 
-  const handleSkip = () => {
-    onSkip();
-  };
+  const handleSkip = () => onSkip();
 
   if (!isRunning || !steps[currentStep]) return null;
 
@@ -174,73 +233,108 @@ export const CustomTour: React.FC<CustomTourProps> = ({
 
   return (
     <>
-      {/* Overlay */}
-      <div
-        style={{ pointerEvents: "auto" }}
-      />
+      {/* Overlay (caso precise capturar cliques) */}
+      <div style={{ pointerEvents: "auto" }} />
 
-      {/* Spotlight with improved positioning */}
+      {/* Spotlight */}
       {!isCenter && targetRect && (
         <div
-          className="fixed pointer-events-none z-50"
           style={{
+            position: "fixed",
+            pointerEvents: "none",
+            zIndex: 50,
             left: targetRect.left - 8,
             top: targetRect.top - 8,
             width: targetRect.width + 16,
             height: targetRect.height + 16,
             boxShadow: `
-              0 0 0 4px hsl(var(--primary) / 0.2),
+              0 0 0 4px ${hsl(t.primary, 0.2)},
               0 0 0 9999px rgba(0, 0, 0, 0.5)
             `,
-            border: "3px solid hsl(var(--primary))",
-            borderRadius: "12px",
-            background: "transparent", // Adicionado para evitar sobreposição
+            border: `3px solid ${hsl(t.primary)}`,
+            borderRadius: "16px",
+            background: "transparent",
+            transition:
+              "box-shadow 0.3s ease-in-out, border-radius 0.3s ease-in-out",
           }}
         />
       )}
 
-      {/* Tooltip with improved positioning */}
+      {/* Tooltip */}
       <Card
         ref={tooltipRef}
-        className="fixed z-50 bg-card border shadow-strong max-w-sm"
         style={{
+          position: "fixed",
+          zIndex: 50,
           left: tooltipPosition.x,
           top: tooltipPosition.y,
           transform: isCenter ? "translate(-50%, -50%)" : undefined,
           maxHeight: "80vh",
           overflowY: "auto",
+          background: hsl(t.card),
+          border: `1px solid ${hsl(t.border)}`,
+          boxShadow: `0 10px 30px -5px ${hsl(t.primary, 0.2)}`,
+          borderRadius: "12px",
+          transition: "all 0.3s ease-in-out",
+          maxWidth: "24rem",
         }}
       >
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            {/* Close button */}
-            <div className="flex justify-end">
+        <CardContent style={{ padding: "1.5rem" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            {/* Close */}
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handleSkip}
-                className="h-6 w-6"
+                style={{
+                  width: "24px",
+                  height: "24px",
+                  borderRadius: "50%",
+                  transition: "background-color 0.3s ease-in-out",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = hsl(t.primary, 0.1);
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }}
               >
-                <X className="h-4 w-4" />
+                <X style={{ height: "16px", width: "16px" }} />
               </Button>
             </div>
 
             {/* Content */}
-            <div className="space-y-3">{currentStepData.content}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {currentStepData.content}
+            </div>
 
-            {/* Progress - only show for full tour */}
+            {/* Progress */}
             {!isContextualHelp && (
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  fontSize: "14px",
+                  color: hsl(t.mutedForeground),
+                }}
+              >
                 <span>
                   {currentStep + 1} of {steps.length}
                 </span>
-                <div className="flex gap-1">
+                <div style={{ display: "flex", gap: "4px" }}>
                   {steps.map((_, index) => (
                     <div
                       key={index}
-                      className={`h-2 w-2 rounded-full ${
-                        index === currentStep ? "bg-primary" : "bg-muted"
-                      }`}
+                      style={{
+                        height: "8px",
+                        width: "8px",
+                        borderRadius: "9999px",
+                        background:
+                          index === currentStep ? hsl(t.primary) : hsl(t.muted),
+                        transition: "background-color 0.3s ease-in-out",
+                      }}
                     />
                   ))}
                 </div>
@@ -248,13 +342,13 @@ export const CustomTour: React.FC<CustomTourProps> = ({
             )}
 
             {/* Actions */}
-            <div className="flex items-center justify-between pt-2">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "8px" }}>
               {isContextualHelp ? (
                 <Button
                   variant="default"
                   size="sm"
                   onClick={handleSkip}
-                  className="w-full"
+                  style={{ width: "100%" }}
                 >
                   Got it!
                 </Button>
@@ -264,32 +358,32 @@ export const CustomTour: React.FC<CustomTourProps> = ({
                     variant="outline"
                     size="sm"
                     onClick={handleSkip}
-                    className="gap-1"
+                    style={{ display: "flex", alignItems: "center", gap: "4px" }}
                   >
-                    <SkipForward className="h-3 w-3" />
+                    <SkipForward style={{ height: "12px", width: "12px" }} />
                     Skip
                   </Button>
 
-                  <div className="flex gap-2">
+                  <div style={{ display: "flex", gap: "8px" }}>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={handlePrev}
                       disabled={currentStep === 0}
-                      className="gap-1"
+                      style={{ display: "flex", alignItems: "center", gap: "4px" }}
                     >
-                      <ChevronLeft className="h-3 w-3" />
+                      <ChevronLeft style={{ height: "12px", width: "12px" }} />
                       Back
                     </Button>
                     <Button
                       variant="default"
                       size="sm"
                       onClick={handleNext}
-                      className="gap-1"
+                      style={{ display: "flex", alignItems: "center", gap: "4px" }}
                     >
                       {currentStep === steps.length - 1 ? "Finish" : "Next"}
                       {currentStep !== steps.length - 1 && (
-                        <ChevronRight className="h-3 w-3" />
+                        <ChevronRight style={{ height: "12px", width: "12px" }} />
                       )}
                     </Button>
                   </div>
