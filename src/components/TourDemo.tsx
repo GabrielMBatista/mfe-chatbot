@@ -1,27 +1,33 @@
-import React, { useState, useCallback } from 'react';
-import { CustomTour } from '@/components/CustomTour';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Play, 
-  Pause, 
-  RotateCcw, 
-  Star, 
-  Users, 
-  TrendingUp, 
+import React, { useState, useCallback } from "react";
+import { CustomTour } from "@/components/CustomTour";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Play,
+  Pause,
+  RotateCcw,
+  Star,
+  Users,
+  TrendingUp,
   Settings,
   HelpCircle,
   Zap,
   Target,
   Award,
-  BarChart3
-} from 'lucide-react';
+  BarChart3,
+} from "lucide-react";
 
 interface TourStep {
   target: string;
   content: React.ReactNode;
-  placement?: 'top' | 'bottom' | 'left' | 'right' | 'center';
+  placement?: "top" | "bottom" | "left" | "right" | "center";
 }
 
 interface TourState {
@@ -34,48 +40,73 @@ const TourDemo: React.FC = () => {
     run: false,
     steps: [
       {
-        target: '.tour-welcome',
+        target: ".tour-welcome",
         content: (
           <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-primary">Welcome to our app! 🎉</h3>
-            <p>Let me show you around our amazing dashboard and its powerful features.</p>
+            <h3 className="text-lg font-semibold text-primary">
+              Welcome to our app! 🎉
+            </h3>
+            <p>
+              Let me show you around our amazing dashboard and its powerful
+              features.
+            </p>
           </div>
         ),
-        placement: 'center',
+        placement: "center",
       },
       {
-        target: '.tour-stats',
+        target: ".tour-stats",
         content: (
           <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-primary">Analytics Overview</h3>
-            <p>Here you can see your key performance metrics at a glance. These cards update in real-time to give you the latest insights.</p>
-          </div>
-        ),
-      },
-      {
-        target: '.tour-features',
-        content: (
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-primary">Feature Showcase</h3>
-            <p>This section highlights our main features. Each feature card shows detailed information and quick actions you can take.</p>
-          </div>
-        ),
-      },
-      {
-        target: '.tour-actions',
-        content: (
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-primary">Quick Actions</h3>
-            <p>Use these buttons to perform common tasks quickly. They're designed for maximum efficiency and ease of use.</p>
+            <h3 className="text-lg font-semibold text-primary">
+              Analytics Overview
+            </h3>
+            <p>
+              Here you can see your key performance metrics at a glance. These
+              cards update in real-time to give you the latest insights.
+            </p>
           </div>
         ),
       },
       {
-        target: '.tour-help',
+        target: ".tour-features",
         content: (
           <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-primary">Need Help? 💡</h3>
-            <p>Click here anytime you need assistance. Our help system is context-aware and will provide relevant guidance.</p>
+            <h3 className="text-lg font-semibold text-primary">
+              Feature Showcase
+            </h3>
+            <p>
+              This section highlights our main features. Each feature card shows
+              detailed information and quick actions you can take.
+            </p>
+          </div>
+        ),
+      },
+      {
+        target: ".tour-actions",
+        content: (
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-primary">
+              Quick Actions
+            </h3>
+            <p>
+              Use these buttons to perform common tasks quickly. They're
+              designed for maximum efficiency and ease of use.
+            </p>
+          </div>
+        ),
+      },
+      {
+        target: ".tour-help",
+        content: (
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-primary">
+              Need Help? 💡
+            </h3>
+            <p>
+              Click here anytime you need assistance. Our help system is
+              context-aware and will provide relevant guidance.
+            </p>
           </div>
         ),
       },
@@ -88,20 +119,20 @@ const TourDemo: React.FC = () => {
   }>({ show: false, stepIndex: -1 });
 
   const handleTourComplete = useCallback(() => {
-    setTourState(prev => ({ ...prev, run: false }));
+    setTourState((prev) => ({ ...prev, run: false }));
   }, []);
 
   const handleTourSkip = useCallback(() => {
-    setTourState(prev => ({ ...prev, run: false }));
+    setTourState((prev) => ({ ...prev, run: false }));
     setContextualHelp({ show: false, stepIndex: -1 });
   }, []);
 
   const startTour = () => {
-    setTourState(prev => ({ ...prev, run: true }));
+    setTourState((prev) => ({ ...prev, run: true }));
   };
 
   const resetTour = () => {
-    setTourState(prev => ({ ...prev, run: false }));
+    setTourState((prev) => ({ ...prev, run: false }));
   };
 
   const showContextualHelp = (stepIndex: number) => {
@@ -132,10 +163,14 @@ const TourDemo: React.FC = () => {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="tour-welcome">
-              <h1 className="text-2xl font-bold gradient-text">Custom Tour Demo</h1>
-              <p className="text-muted-foreground">Experience interactive guided tours without external libs</p>
+              <h1 className="text-2xl font-bold gradient-text">
+                Custom Tour Demo
+              </h1>
+              <p className="text-muted-foreground">
+                Experience interactive guided tours without external libs
+              </p>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <Button
                 variant="tour"
@@ -147,7 +182,7 @@ const TourDemo: React.FC = () => {
                 <Play className="h-4 w-4" />
                 Start Tour
               </Button>
-              
+
               <Button
                 variant="outline"
                 size="lg"
@@ -157,10 +192,10 @@ const TourDemo: React.FC = () => {
                 <RotateCcw className="h-4 w-4" />
                 Reset
               </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="icon" 
+
+              <Button
+                variant="ghost"
+                size="icon"
                 className="tour-help"
                 onClick={() => showContextualHelp(4)}
               >
@@ -181,7 +216,9 @@ const TourDemo: React.FC = () => {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Users</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Total Users
+                    </p>
                     <p className="text-2xl font-bold">12,847</p>
                     <p className="text-xs text-success flex items-center gap-1 mt-1">
                       <TrendingUp className="h-3 w-3" />
@@ -207,7 +244,9 @@ const TourDemo: React.FC = () => {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Revenue</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Revenue
+                    </p>
                     <p className="text-2xl font-bold">$54,231</p>
                     <p className="text-xs text-success flex items-center gap-1 mt-1">
                       <TrendingUp className="h-3 w-3" />
@@ -223,7 +262,9 @@ const TourDemo: React.FC = () => {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Conversion Rate</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Conversion Rate
+                    </p>
                     <p className="text-2xl font-bold">3.24%</p>
                     <p className="text-xs text-success flex items-center gap-1 mt-1">
                       <TrendingUp className="h-3 w-3" />
@@ -239,7 +280,9 @@ const TourDemo: React.FC = () => {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Satisfaction</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Satisfaction
+                    </p>
                     <p className="text-2xl font-bold">4.8/5</p>
                     <p className="text-xs text-success flex items-center gap-1 mt-1">
                       <Star className="h-3 w-3 fill-current" />
@@ -266,7 +309,9 @@ const TourDemo: React.FC = () => {
                     </div>
                     <div>
                       <CardTitle className="text-lg">Lightning Fast</CardTitle>
-                      <CardDescription>Built for speed and performance</CardDescription>
+                      <CardDescription>
+                        Built for speed and performance
+                      </CardDescription>
                     </div>
                   </div>
                   <Button
@@ -281,7 +326,8 @@ const TourDemo: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Experience blazing fast load times and smooth interactions powered by modern technology.
+                  Experience blazing fast load times and smooth interactions
+                  powered by modern technology.
                 </p>
                 <div className="flex gap-2">
                   <Badge variant="secondary">React</Badge>
@@ -299,13 +345,16 @@ const TourDemo: React.FC = () => {
                   </div>
                   <div>
                     <CardTitle className="text-lg">User-Friendly</CardTitle>
-                    <CardDescription>Intuitive and accessible design</CardDescription>
+                    <CardDescription>
+                      Intuitive and accessible design
+                    </CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Designed with users in mind, featuring guided tours and helpful interactions.
+                  Designed with users in mind, featuring guided tours and
+                  helpful interactions.
                 </p>
                 <div className="flex gap-2">
                   <Badge variant="secondary">Accessibility</Badge>
@@ -329,7 +378,8 @@ const TourDemo: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Highly customizable tours and interfaces that adapt to your specific requirements.
+                  Highly customizable tours and interfaces that adapt to your
+                  specific requirements.
                 </p>
                 <div className="flex gap-2">
                   <Badge variant="secondary">Flexible</Badge>
@@ -367,7 +417,8 @@ const TourDemo: React.FC = () => {
         {/* Footer Info */}
         <div className="pt-8 text-center">
           <p className="text-muted-foreground">
-            This demo showcases a custom tour system with modern design and React components
+            This demo showcases a custom tour system with modern design and
+            React components
           </p>
         </div>
       </div>
