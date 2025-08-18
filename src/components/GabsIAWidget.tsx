@@ -1,11 +1,13 @@
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
-import { GabsIAWidgetProps, useGabsIAWidget } from "@/hooks/useGabsIAWidget";
+import { useGabsIAWidget } from "@/hooks/useGabsIAWidget";
 import { HelpCircle, Play } from "lucide-react";
 import { useState, useEffect } from "react";
 import { CustomTour } from "@/components/CustomTour";
-import { TourStep } from "Chatbot/GabsIAWidget";
+import { DockPos, GabsIAWidgetProps, TourStep } from "Chatbot/GabsIAWidget";
 
-export const GabsIAWidget = ({ fixedPosition }: GabsIAWidgetProps) => {
+export const GabsIAWidget = ({
+  fixedPosition,
+}: GabsIAWidgetProps & { fixedPosition?: DockPos }) => {
   const {
     reopenGabsIAWidget,
     history,
@@ -36,7 +38,7 @@ export const GabsIAWidget = ({ fixedPosition }: GabsIAWidgetProps) => {
     onmouseup,
     ontouchmove,
     ontouchend,
-  } = useGabsIAWidget(fixedPosition);
+  } = useGabsIAWidget({ fixedPosition });
 
   const [tourState, setTourState] = useState<{
     run: boolean;
@@ -105,7 +107,11 @@ export const GabsIAWidget = ({ fixedPosition }: GabsIAWidgetProps) => {
     return () => {
       document.removeEventListener("click", handleDataGabsClick);
     };
-  }, [dynamicTourEnabled]);
+  }, [dynamicTourEnabled]); // Certifique-se de que `dynamicTourEnabled` seja estável
+
+  useEffect(() => {
+    if (!tourState.run) return; // Evita reexecução desnecessária
+  }, []); // Removemos `tourState.run` para evitar loops
 
   return (
     <>
@@ -231,40 +237,72 @@ export const GabsIAWidget = ({ fixedPosition }: GabsIAWidgetProps) => {
                 scrollbarColor: "#0028af #f1f1f1",
               }}
             >
-              {history.map((entry, index) => (
-                <div
-                  key={index}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems:
-                      entry.owner === "user" ? "flex-end" : "flex-start",
-                    textAlign: entry.owner === "user" ? "right" : "left",
-                  }}
-                >
-                  <div
-                    style={{
-                      background:
-                        entry.owner === "user" ? "#0028af" : "#f1f1f1",
-                      color: entry.owner === "user" ? "#fff" : "#000",
-                      padding: "10px 14px",
-                      borderRadius:
-                        entry.owner === "user"
-                          ? "12px 0 12px 12px"
-                          : "0 12px 12px 12px",
-                      maxWidth: "80%",
-                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                    }}
-                  >
-                    <p
+              {/* Oculta question do initialMessage (index 1 ou 0) se estiver vazia */}
+              {history.map((entry) => (
+                <div key={`pair-${entry.index ?? entry.answer}`}>
+                  {/* Mensagem do usuário */}
+                  {entry.question && (
+                    <div
                       style={{
-                        margin: 0,
-                        fontSize: "14px",
-                        lineHeight: "1.4",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-end",
+                        textAlign: "right",
                       }}
                     >
-                      {entry.owner === "user" ? entry.question : entry.answer}
-                    </p>
+                      <div
+                        style={{
+                          background: "#0028af",
+                          color: "#fff",
+                          padding: "10px 14px",
+                          borderRadius: "12px 0 12px 12px",
+                          maxWidth: "80%",
+                          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                          marginBottom: 2,
+                        }}
+                      >
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: "14px",
+                            lineHeight: "1.4",
+                          }}
+                        >
+                          {entry.question}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {/* Mensagem do G•One */}
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                      textAlign: "left",
+                    }}
+                  >
+                    <div
+                      style={{
+                        background: "#f1f1f1",
+                        color: "#000",
+                        padding: "10px 14px",
+                        borderRadius: "0 12px 12px 12px",
+                        maxWidth: "80%",
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                        marginBottom: 2,
+                      }}
+                    >
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: "14px",
+                          lineHeight: "1.4",
+                        }}
+                      >
+                        {entry.answer}
+                      </p>
+                    </div>
                   </div>
                 </div>
               ))}

@@ -1,6 +1,6 @@
 export async function askOpenAI({
   prompt,
-  model = "gpt-3.5-turbo",
+  model,
   systemPrompt,
 }: {
   prompt: string;

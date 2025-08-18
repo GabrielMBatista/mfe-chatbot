@@ -70,7 +70,21 @@ const nextConfig = {
             { source: "/static/chunks/:path*", headers: common },
             { source: "/types/:path*", headers: common },
         ];
-    }
+    },
+    async redirects() {
+        return [
+            {
+                source: '/',
+                destination: '/tour',
+                permanent: true,
+            },
+            {
+                source: '/home',
+                destination: '/tour',
+                permanent: true,
+            },
+        ];
+    },
 };
 
 export default nextConfig;

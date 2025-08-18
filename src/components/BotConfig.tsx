@@ -18,7 +18,7 @@ export default function ChatBotPage() {
     personality: "",
     avatarUrl: "",
     avatarBase64: "",
-    model: "gpt-3.5-turbo",
+    model: "",
   });
 
   const [loading, setLoading] = useState(true);

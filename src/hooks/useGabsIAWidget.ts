@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useGabsIA } from "@/hooks/useGabsIA";
+import { DockPos, GabsIAWidgetProps } from "Chatbot/GabsIAWidget";
+import { HistoryPair } from "@/utils/compactHistory";
 
 export const TYPES_VERSION = "1.0.0";
 
@@ -8,18 +10,6 @@ declare global {
     reopenGabsIAWidget?: () => void;
   }
 }
-
-export type DockPos = Partial<{
-  top: number | string;
-  left: number | string;
-  right: number | string;
-  bottom: number | string;
-}>;
-
-export type GabsIAWidgetProps = {
-  tourEnabled?: boolean;
-  fixedPosition?: DockPos;
-};
 
 const localStorageKey = "gabs_disabled";
 const positionStorageKey = "gabs_position";
@@ -31,7 +21,14 @@ const ASSETS = {
   loading: `${base}/Loading.lottie`,
 };
 
-export function useGabsIAWidget(fixedPosition?: DockPos) {
+export function useGabsIAWidget({
+  fixedPosition,
+  initialMessage = {
+    question: "",
+    answer: "Bem-vindo ao G•One! Estou aqui para ajudar.",
+    owner: "gone",
+  },
+}: GabsIAWidgetProps & { fixedPosition?: DockPos }) {
   const {
     askGabs,
     loading,
@@ -42,14 +39,7 @@ export function useGabsIAWidget(fixedPosition?: DockPos) {
     responses: Record<string, any>;
   } = useGabsIA();
 
-  const [history, setHistory] = useState<
-    {
-      question: string;
-      answer: string;
-      owner: "user" | "gone";
-      actions?: { label: string; anchorId: string }[];
-    }[]
-  >([]);
+  const [history, setHistory] = useState<HistoryPair[]>([]);
   const [disabled, setDisabled] = useState(false);
   const [contextMessage, setContextMessage] = useState<string | null>(null);
   const [userMessage, setUserMessage] = useState("");
@@ -104,45 +94,66 @@ export function useGabsIAWidget(fixedPosition?: DockPos) {
 
   const sendQuestion = async () => {
     if (!userMessage.trim()) return;
-    setHistory((prev) => [
-      ...prev,
-      { question: userMessage, answer: "", owner: "user" },
-    ]);
-    try {
-      const data = await askGabs(userMessage);
-      setHistory((prev) => {
-        const updatedHistory = prev.some(
-          (entry) =>
-            entry.question === userMessage &&
-            entry.answer === data.reply &&
-            entry.owner === "gone"
-        )
-          ? prev
-          : [
-              ...prev,
-              {
-                question: userMessage,
-                answer: data.reply,
-                owner: "gone" as "gone",
-              },
-            ];
-        localStorage.setItem(
-          "gabs_chat_history",
-          JSON.stringify(updatedHistory)
-        );
-        return updatedHistory;
-      });
-    } catch {
-      setHistory((prev) => [
+    const userTimestamp = Date.now();
+    const question = userMessage;
+    setUserMessage("");
+    setHistory((prev) => {
+      // Garante que o índice seja sempre o último + 1, ignorando pares inválidos
+      const validHistory = prev.filter((h) => h.question && h.answer);
+      const nextIndex =
+        validHistory.length > 0
+          ? validHistory[validHistory.length - 1].index + 1
+          : 2;
+      return [
         ...prev,
         {
-          question: userMessage,
-          answer: "Erro ao se comunicar com a IA.",
-          owner: "gone" as "gone",
+          index: nextIndex,
+          question,
+          answer: "",
+          userTimestamp,
+          agentTimestamp: 0,
         },
-      ]);
-    } finally {
-      setUserMessage("");
+      ];
+    });
+    try {
+      // Envia o histórico válido junto com a pergunta
+      const validHistory = history.filter((h) => h.question && h.answer);
+      const data = await askGabs(question, validHistory);
+      const agentTimestamp = Date.now();
+      setHistory((prev) => {
+        const updated = [...prev];
+        const last = updated[updated.length - 1];
+        if (last && last.answer === "" && last.question === question) {
+          updated[updated.length - 1] = {
+            ...last,
+            answer: data.reply,
+            agentTimestamp,
+          };
+        }
+        localStorage.setItem(
+          "gabs_chat_history",
+          JSON.stringify(updated.filter((h) => h.question && h.answer))
+        );
+        return updated;
+      });
+    } catch {
+      setHistory((prev) => {
+        const agentTimestamp = Date.now();
+        const updated = [...prev];
+        const last = updated[updated.length - 1];
+        if (last && last.answer === "" && last.question === question) {
+          updated[updated.length - 1] = {
+            ...last,
+            answer: "Erro ao se comunicar com a IA.",
+            agentTimestamp,
+          };
+        }
+        localStorage.setItem(
+          "gabs_chat_history",
+          JSON.stringify(updated.filter((h) => h.question && h.answer))
+        );
+        return updated;
+      });
     }
   };
 
@@ -151,7 +162,6 @@ export function useGabsIAWidget(fixedPosition?: DockPos) {
       ? fixedPosition
       : dockPos
     : { top: position.top, left: position.left };
-
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -214,13 +224,14 @@ export function useGabsIAWidget(fixedPosition?: DockPos) {
 
   useEffect(() => {
     const handleOpenChat = () => {
+      if (disabled) return;
       setContextMessage(null);
       setAiReply(null);
       setShowInput(true);
     };
     window.addEventListener("openChat", handleOpenChat as any);
     return () => window.removeEventListener("openChat", handleOpenChat as any);
-  }, []);
+  }, [disabled]);
 
   useEffect(() => {
     const handleEnable = () => setDisabled(false);
@@ -237,7 +248,7 @@ export function useGabsIAWidget(fixedPosition?: DockPos) {
     } else {
       setPinned(false);
     }
-  }, [disabled, fixedPosition]);
+  }, [disabled]);
 
   useEffect(() => {
     const onPin = (e: Event) => {
@@ -279,6 +290,43 @@ export function useGabsIAWidget(fixedPosition?: DockPos) {
     const savedHistory = localStorage.getItem("gabs_chat_history");
     if (savedHistory) {
       setHistory(JSON.parse(savedHistory));
+    } else {
+      setHistory([
+        {
+          index: 1,
+          question: "",
+          answer: initialMessage.answer,
+          userTimestamp: Date.now(),
+          agentTimestamp: Date.now(),
+        },
+      ]);
+      try {
+        localStorage.setItem(
+          "gabs_chat_history",
+          JSON.stringify([
+            {
+              index: 1,
+              question: "",
+              answer: initialMessage.answer,
+              userTimestamp: Date.now(),
+              agentTimestamp: Date.now(),
+            },
+          ])
+        );
+      } catch (e) {
+        console.error("Erro ao salvar histórico inicial no localStorage:", e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const savedDisabled = localStorage.getItem(localStorageKey) === "true";
+    if (savedDisabled) {
+      setDisabled(true);
+      setPinned(true);
+      if (fixedPosition && Object.keys(fixedPosition || {}).length) {
+        setDockPos(fixedPosition);
+      }
     }
   }, []);
 
@@ -288,7 +336,6 @@ export function useGabsIAWidget(fixedPosition?: DockPos) {
         chatContainerRef.current.scrollHeight;
     }
   }, [history]);
-
 
   const onmousemove = (e: MouseEvent): void => {
     const { left, top } = clampPosition(

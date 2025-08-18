@@ -41,7 +41,7 @@ export const CustomTour: React.FC<CustomTourProps> = ({
   isContextualHelp = false,
 }) => {
   const t = useLocalTokens();
-  console.log("steps", steps);
+  // console.log("steps", steps);
   useEffect(() => {
     const styles = `
       .custom-tour-tooltip {

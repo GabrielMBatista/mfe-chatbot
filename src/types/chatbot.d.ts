@@ -22,10 +22,13 @@ declare module "Chatbot/GabsIAWidget" {
 
   export type GabsIAWidgetProps = {
     tourEnabled?: boolean;
-    // fixedPosition vindo do Shell força o widget a ficar pinned nessa posição.
     fixedPosition?: DockPos;
+    initialMessage?: {
+      question: string;
+      answer: string;
+      owner: "gone";
+    };
   };
-
   export interface CustomTourProps {
     steps: TourStep[];
     isRunning: boolean;

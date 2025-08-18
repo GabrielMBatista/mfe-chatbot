@@ -36,7 +36,10 @@ export function useGabsIA() {
     loadResponses();
   }, []);
 
-  const askGabs = async (message: string): Promise<BotResponse> => {
+  const askGabs = async (
+    message: string,
+    history: HistoryEntry[] = []
+  ): Promise<BotResponse> => {
     setLoading(true);
 
     const anchor = Object.keys(responses).find((key) =>
@@ -55,7 +58,11 @@ export function useGabsIA() {
           ? prev
           : [
               ...prev,
-              { question: message, answer: response.reply, owner: "gone" as const },
+              {
+                question: message,
+                answer: response.reply,
+                owner: "gone" as const,
+              },
             ];
         localStorage.setItem(
           "gabs_chat_history",
@@ -71,7 +78,7 @@ export function useGabsIA() {
       const result = await fetch(`${base}/api/gabsia`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, history }),
       });
 
       const data = await result.json();
@@ -83,7 +90,10 @@ export function useGabsIA() {
             entry.owner === "gone"
         )
           ? prev
-          : [...prev, { question: message, answer: data.reply, owner: "gone" as const }];
+          : [
+              ...prev,
+              { question: message, answer: data.reply, owner: "gone" as const },
+            ];
         localStorage.setItem(
           "gabs_chat_history",
           JSON.stringify(updatedHistory)
