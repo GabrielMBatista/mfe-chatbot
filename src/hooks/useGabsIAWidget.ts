@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useGabsIA } from "@/hooks/useGabsIA";
 import { DockPos, GabsIAWidgetProps } from "Chatbot/GabsIAWidget";
-import { HistoryPair } from "@/utils/compactHistory";
+import type { HistoryPair } from "../utils/compactHistory";
 
 export const TYPES_VERSION = "1.0.0";
 
@@ -25,7 +25,8 @@ export function useGabsIAWidget({
   fixedPosition,
   initialMessage = {
     question: "",
-    answer: "Bem-vindo ao G•One! Estou aqui para ajudar.",
+    answer:
+      "Olá! Eu sou o G•One, assistente oficial do portfólio de Gabriel Marques. Posso te ajudar a entender cada área do site, explicar decisões técnicas ou apresentar os projetos do Gabriel com clareza e profundidade. Dica: utilize os botões de tour (ícone de interrogação) para navegar por explicações guiadas das principais áreas do portfólio.  Também é possível clicar em áreas marcadas com data-gabs para explicações rápidas. Como posso te ajudar hoje?",
     owner: "gone",
   },
 }: GabsIAWidgetProps & { fixedPosition?: DockPos }) {
