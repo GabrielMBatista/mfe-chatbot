@@ -29,6 +29,14 @@ declare module "Chatbot/GabsIAWidget" {
       owner: "gone";
     };
   };
+
+  export interface HistoryPair {
+    index: number;
+    question: string;
+    answer: string;
+    userTimestamp: number;
+    agentTimestamp: number;
+  }
   export interface CustomTourProps {
     steps: TourStep[];
     isRunning: boolean;

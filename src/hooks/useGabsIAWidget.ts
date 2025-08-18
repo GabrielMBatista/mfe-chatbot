@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useGabsIA } from "@/hooks/useGabsIA";
-import { DockPos, GabsIAWidgetProps } from "Chatbot/GabsIAWidget";
-import type { HistoryPair } from "../utils/compactHistory";
+import { DockPos, GabsIAWidgetProps, HistoryPair } from "Chatbot/GabsIAWidget";
 
 export const TYPES_VERSION = "1.0.0";
 
