@@ -1,8 +1,9 @@
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { GabsIAWidgetProps, useGabsIAWidget } from "@/hooks/useGabsIAWidget";
-import { HelpCircle } from "lucide-react";
-import { useState } from "react";
+import { HelpCircle, Play } from "lucide-react";
+import { useState, useEffect } from "react";
 import { CustomTour } from "@/components/CustomTour";
+import { TourStep } from "Chatbot/GabsIAWidget";
 
 export const GabsIAWidget = ({ fixedPosition }: GabsIAWidgetProps) => {
   const {
@@ -37,7 +38,10 @@ export const GabsIAWidget = ({ fixedPosition }: GabsIAWidgetProps) => {
     ontouchend,
   } = useGabsIAWidget(fixedPosition);
 
-  const [tourState, setTourState] = useState({
+  const [tourState, setTourState] = useState<{
+    run: boolean;
+    steps: (TourStep | { target: string; content: string })[];
+  }>({
     run: false,
     steps: [
       {
@@ -47,9 +51,61 @@ export const GabsIAWidget = ({ fixedPosition }: GabsIAWidgetProps) => {
     ],
   });
 
-  const startTour = () => setTourState((prev) => ({ ...prev, run: true }));
+  const [dynamicTourEnabled, setDynamicTourEnabled] = useState(false); // Estado para ativar/desativar o tour dinâmico
+
+  const startFixedTour = () => {
+    setTourState((prev) => ({
+      ...prev,
+      run: true,
+      steps: [
+        {
+          target: ".gabs-avatar",
+          content: "Este é o assistente G•One. Clique para interagir!",
+        },
+        {
+          target: ".some-other-element",
+          content: "Outro passo fixo do tour.",
+        },
+      ],
+    }));
+  };
+
+  const startDynamicTour = (gabsValue: string) => {
+    const dynamicSteps: TourStep[] = [
+      {
+        target: `[data-gabs="${gabsValue}"]`,
+        content: `Detalhes do item: ${gabsValue}`,
+      },
+    ];
+    setTourState((prev) => ({
+      ...prev,
+      run: true,
+      steps: dynamicSteps,
+    }));
+  };
+
   const handleTourComplete = () =>
     setTourState((prev) => ({ ...prev, run: false }));
+
+  useEffect(() => {
+    const handleDataGabsClick = (e: MouseEvent) => {
+      if (!dynamicTourEnabled) return;
+
+      const target = e.target as HTMLElement;
+      const gabsValue = target
+        .closest("[data-gabs]")
+        ?.getAttribute("data-gabs");
+      if (gabsValue) {
+        startDynamicTour(gabsValue);
+      }
+    };
+
+    document.addEventListener("click", handleDataGabsClick);
+
+    return () => {
+      document.removeEventListener("click", handleDataGabsClick);
+    };
+  }, [dynamicTourEnabled]);
 
   return (
     <>
@@ -128,7 +184,13 @@ export const GabsIAWidget = ({ fixedPosition }: GabsIAWidgetProps) => {
                 <HelpCircle
                   size={24}
                   color="#0028af"
-                  onClick={startTour}
+                  onClick={startFixedTour} // Ativa o tour fixo
+                  style={{ cursor: "pointer" }}
+                />
+                <Play
+                  size={24}
+                  color={dynamicTourEnabled ? "#28a745" : "#ccc"} // Cor muda com base no estado
+                  onClick={() => setDynamicTourEnabled((prev) => !prev)} // Alterna o estado do tour dinâmico
                   style={{ cursor: "pointer" }}
                 />
               </div>

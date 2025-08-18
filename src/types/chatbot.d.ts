@@ -3,7 +3,15 @@ declare module "Chatbot/GabsIAWidget" {
 
   export type ButtonAction = { label: string; anchorId: string };
   export type BotResponse = { reply: string; actions?: ButtonAction[] };
-  export type TourStep = { selector: string; message: string; action: string };
+  export interface TourStep {
+    target: string;
+    content: React.ReactNode;
+    placement?: "top" | "bottom" | "left" | "right" | "center";
+  }
+  export interface TourState {
+    run: boolean;
+    steps: TourStep[];
+  }
 
   export type DockPos = Partial<{
     top: number;
@@ -17,6 +25,15 @@ declare module "Chatbot/GabsIAWidget" {
     // fixedPosition vindo do Shell força o widget a ficar pinned nessa posição.
     fixedPosition?: DockPos;
   };
+
+  export interface CustomTourProps {
+    steps: TourStep[];
+    isRunning: boolean;
+    onComplete: () => void;
+    onSkip: () => void;
+    specificStep?: number; // Index of specific step to show
+    isContextualHelp?: boolean; // Whether this is contextual help mode
+  }
 
   export const TYPES_VERSION: string;
 

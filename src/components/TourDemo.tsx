@@ -24,17 +24,7 @@ import {
 } from "lucide-react";
 import { useLocalTokens } from "@/hooks/useLocalTokens";
 import { hsl, tokensDark, tokensLight } from "@/styles/tokens";
-
-interface TourStep {
-  target: string;
-  content: React.ReactNode;
-  placement?: "top" | "bottom" | "left" | "right" | "center";
-}
-
-interface TourState {
-  run: boolean;
-  steps: TourStep[];
-}
+import { TourState } from 'Chatbot/GabsIAWidget';
 
 const TourDemo: React.FC = () => {
   const t = useLocalTokens();
