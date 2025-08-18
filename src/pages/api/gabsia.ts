@@ -1,7 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import type { PrismaClient as PrismaClientType } from "@prisma/client";
 import { askOpenAI } from "@/lib/openai";
-import { compactHistory } from "@/utils/compactHistory";
 
 const PrismaPkg = eval("require")("@prisma/client") as any;
 const prisma: PrismaClientType =
