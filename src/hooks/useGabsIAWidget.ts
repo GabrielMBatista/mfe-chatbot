@@ -28,7 +28,10 @@ export function useGabsIAWidget({
       "Olá! Eu sou o G•One, assistente oficial do portfólio de Gabriel Marques. Posso te ajudar a entender cada área do site, explicar decisões técnicas ou apresentar os projetos do Gabriel com clareza e profundidade. Dica: utilize os botões de tour (ícone de interrogação) para navegar por explicações guiadas das principais áreas do portfólio.  Também é possível clicar em áreas marcadas com data-gabs para explicações rápidas. Como posso te ajudar hoje?",
     owner: "gone",
   },
-}: GabsIAWidgetProps & { fixedPosition?: DockPos }) {
+}: GabsIAWidgetProps & {
+  fixedPosition?: DockPos;
+  initialMessage?: { question: string; answer: string; owner: "gone" };
+}) {
   const {
     askGabs,
     loading,
@@ -39,7 +42,27 @@ export function useGabsIAWidget({
     responses: Record<string, any>;
   } = useGabsIA();
 
-  const [history, setHistory] = useState<HistoryPair[]>([]);
+  const [history, setHistory] = useState<HistoryPair[]>(() => {
+    const savedHistory =
+      typeof window !== "undefined"
+        ? localStorage.getItem("gabs_chat_history")
+        : null;
+    if (savedHistory) {
+      return JSON.parse(savedHistory);
+    }
+    if (initialMessage && initialMessage.answer) {
+      return [
+        {
+          index: 0,
+          question: initialMessage.question,
+          answer: initialMessage.answer,
+          userTimestamp: Date.now(),
+          agentTimestamp: Date.now(),
+        },
+      ];
+    }
+    return [];
+  });
   const [disabled, setDisabled] = useState(false);
   const [contextMessage, setContextMessage] = useState<string | null>(null);
   const [userMessage, setUserMessage] = useState("");

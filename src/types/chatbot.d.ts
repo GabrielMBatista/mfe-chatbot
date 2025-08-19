@@ -7,6 +7,7 @@ declare module "Chatbot/GabsIAWidget" {
     target: string;
     content: React.ReactNode;
     placement?: "top" | "bottom" | "left" | "right" | "center";
+    route?: string; // Nova propriedade para navegação
   }
   export interface TourState {
     run: boolean;
@@ -26,7 +27,6 @@ declare module "Chatbot/GabsIAWidget" {
     initialMessage?: {
       question: string;
       answer: string;
-      owner: "gone";
     };
   };
 

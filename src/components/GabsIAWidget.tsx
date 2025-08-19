@@ -5,13 +5,25 @@ import { useState, useEffect } from "react";
 import { CustomTour } from "@/components/CustomTour";
 import { DockPos, GabsIAWidgetProps, TourStep } from "Chatbot/GabsIAWidget";
 
+// Adiciona nova prop opcional para steps fixos
+export interface GabsIAWidgetConfigurableProps extends GabsIAWidgetProps {
+  fixedPosition?: DockPos;
+  fixedTourSteps?: TourStep[]; // Corrigido para sempre TourStep
+  onNavigate?: (route: string) => void; // Nova prop
+}
+
 export const GabsIAWidget = ({
   fixedPosition,
-}: GabsIAWidgetProps & { fixedPosition?: DockPos }) => {
+  fixedTourSteps, // nova prop
+  initialMessage, // Adiciona a prop
+  onNavigate, // Nova prop
+}: GabsIAWidgetConfigurableProps & {
+  initialMessage?: { question: string; answer: string; owner: "gone" };
+}) => {
   const {
     reopenGabsIAWidget,
-    history,
-    setHistory,
+    history, // Use o estado do hook
+    setHistory, // Use o setter do hook
     disabled,
     setDisabled,
     contextMessage,
@@ -38,11 +50,11 @@ export const GabsIAWidget = ({
     onmouseup,
     ontouchmove,
     ontouchend,
-  } = useGabsIAWidget({ fixedPosition });
+  } = useGabsIAWidget({ fixedPosition, initialMessage });
 
   const [tourState, setTourState] = useState<{
     run: boolean;
-    steps: (TourStep | { target: string; content: string })[];
+    steps: TourStep[]; // Corrigido para sempre TourStep
   }>({
     run: false,
     steps: [
@@ -55,70 +67,84 @@ export const GabsIAWidget = ({
 
   const [dynamicTourEnabled, setDynamicTourEnabled] = useState(false); // Estado para ativar/desativar o tour dinâmico
 
+  // Steps default caso não venha via prop
+  const defaultFixedSteps: TourStep[] = [
+    {
+      target: ".gabs-avatar",
+      content:
+        "Este é o G•One, assistente do portfólio. Clique para interagir ou buscar explicações rápidas nas áreas marcadas.",
+      route: "/",
+    },
+  ];
+
+  // Função para navegar para a rota do step atual
+  const navigateToStepRoute = (stepIndex: number, stepsArr: TourStep[]) => {
+    const step = stepsArr[stepIndex];
+    if (step && step.route && typeof onNavigate === "function") {
+      onNavigate(step.route);
+    }
+  };
+
+  // Função para navegar para a rota do step atual e garantir destaque após navegação
+  const goToStepWithRoute = async (stepIndex: number, stepsArr: TourStep[]) => {
+    const step = stepsArr[stepIndex];
+    if (step && step.route && typeof onNavigate === "function") {
+      onNavigate(step.route);
+      // Aguarda a navegação e renderização do DOM
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    }
+    // Atualiza o step do tour após navegação
+    setTourState((prev) => ({
+      ...prev,
+      steps: stepsArr,
+      run: true,
+    }));
+  };
+
+  // Atualiza a navegação ao iniciar o tour
+  useEffect(() => {
+    if (!tourState.run) return;
+    const stepsArr =
+      fixedTourSteps && fixedTourSteps.length > 0
+        ? fixedTourSteps
+        : defaultFixedSteps;
+    // Se o primeiro step tem rota, navega e só depois ativa o tour
+    if (stepsArr[0]?.route) {
+      goToStepWithRoute(0, stepsArr);
+    } else {
+      navigateToStepRoute(0, stepsArr);
+    }
+  }, [tourState.run]);
+
+  // Navega ao avançar no tour
+  useEffect(() => {
+    if (!tourState.run) return;
+    const stepsArr =
+      fixedTourSteps && fixedTourSteps.length > 0
+        ? fixedTourSteps
+        : defaultFixedSteps;
+    let currentStepIndex = 0;
+    if (tourState.steps && tourState.steps.length > 0) {
+      currentStepIndex = tourState.steps.findIndex(
+        (step) => step.target === tourState.steps[0].target
+      );
+      // Se o step atual tem rota, navega e só depois ativa o tour
+      if (stepsArr[currentStepIndex]?.route) {
+        goToStepWithRoute(currentStepIndex, stepsArr);
+      } else {
+        navigateToStepRoute(currentStepIndex, stepsArr);
+      }
+    }
+  }, [tourState.steps, tourState.run]);
+
   const startFixedTour = () => {
     setTourState((prev) => ({
       ...prev,
       run: true,
-      steps: [
-        {
-          target: ".gabs-avatar", // Widget do assistente G•One
-          content:
-            "Este é o G•One, assistente do portfólio. Clique para interagir ou buscar explicações rápidas nas áreas marcadas.",
-        },
-        {
-          target: "header", // Cabeçalho do site
-          content:
-            "Navegue pelas principais seções do portfólio e alterne o tema aqui.",
-        },
-        {
-          target: ".projects-section, [data-gabs='projects']", // Seção de projetos
-          content:
-            "Aqui estão os projetos desenvolvidos. Use filtros e busca para explorar.",
-        },
-        {
-          target: ".theme-toggle, [data-gabs='theme']", // Alternância de tema
-          content: "Alterne entre modo claro e escuro para melhor experiência.",
-        },
-        {
-          target: ".search input", // Barra de busca de projetos
-          content: "Pesquise projetos por nome, tecnologia ou descrição.",
-        },
-        {
-          target: ".categories-filter, [data-gabs='filters']", // Filtros de categoria
-          content:
-            "Filtre os projetos por categoria: Frontend, Backend, Fullstack, Mobile.",
-        },
-        {
-          target: "[data-gabs^='featured-project-']", // Projetos em destaque
-          content: "Veja os projetos em destaque, com demonstração e código.",
-        },
-        {
-          target: "[data-gabs^='project-']", // Card de projeto individual
-          content:
-            "Clique para ver detalhes, acessar demo ou código no GitHub.",
-        },
-        {
-          target: "[data-gabs^='github-link-']", // Link para GitHub do projeto
-          content: "Acesse o repositório do projeto diretamente pelo botão.",
-        },
-        {
-          target: "[data-gabs^='view-details-']", // Botão de ver detalhes/demo
-          content: "Veja uma prévia do projeto em diferentes resoluções.",
-        },
-        {
-          target: ".cta-section, [data-gabs='cta']", // Seção de chamada para ação
-          content: "Entre em contato ou saiba mais sobre o desenvolvedor.",
-        },
-        {
-          target: "footer", // Rodapé do site
-          content: "Links úteis, redes sociais e informações adicionais.",
-        },
-        {
-          target: ".about-section, [data-gabs='about']", // Sobre/Experiência
-          content:
-            "Conheça a trajetória profissional e educacional do Gabriel.",
-        },
-      ],
+      steps:
+        fixedTourSteps && fixedTourSteps.length > 0
+          ? fixedTourSteps
+          : defaultFixedSteps,
     }));
   };
 
@@ -200,7 +226,7 @@ export const GabsIAWidget = ({
         style={{
           position: "fixed",
           ...stylePosition,
-          zIndex: 9999,
+          zIndex: 90,
           display: "flex",
           flexDirection: "column",
           alignItems: "flex-end",

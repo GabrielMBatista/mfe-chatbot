@@ -46,7 +46,7 @@ export const CustomTour: React.FC<CustomTourProps> = ({
     const styles = `
       .custom-tour-tooltip {
         position: fixed;
-        z-index: 50;
+        z-index: 99;
         max-width: 24rem;
         max-height: 80vh;
         overflow-y: auto;
@@ -55,7 +55,7 @@ export const CustomTour: React.FC<CustomTourProps> = ({
       }
       .custom-tour-overlay {
         position: fixed;
-        z-index: 40;
+        z-index: 80;
         top: 0;
         left: 0;
         width: 100%;
@@ -257,7 +257,7 @@ export const CustomTour: React.FC<CustomTourProps> = ({
           style={{
             position: "fixed",
             pointerEvents: "none",
-            zIndex: 50,
+            zIndex: 99,
             left: targetRect.left - 8,
             top: targetRect.top - 8,
             width: targetRect.width + 16,
@@ -280,7 +280,7 @@ export const CustomTour: React.FC<CustomTourProps> = ({
         ref={tooltipRef}
         style={{
           position: "fixed",
-          zIndex: 50,
+          zIndex: 99,
           left: tooltipPosition.x,
           top: tooltipPosition.y,
           transform: targetRect ? undefined : "translate(-50%, -50%)",
