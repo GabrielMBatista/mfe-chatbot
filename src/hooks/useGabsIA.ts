@@ -26,7 +26,13 @@ export function useGabsIA() {
     const loadResponses = async () => {
       try {
         const res = await fetch(`${base}/responses.json`);
-        const json = await res.json();
+        const text = await res.text();
+        // Tenta corrigir JSON inválido removendo comentários e espaços extras
+        const sanitized = text
+          .replace(/\/\/.*$/gm, "") // remove comentários de linha
+          .replace(/,\s*}/g, "}") // remove vírgula antes de }
+          .replace(/,\s*]/g, "]"); // remove vírgula antes de ]
+        const json = JSON.parse(sanitized);
         const { tourSteps: _ignore, ...bot } = json || {};
         setResponses(bot);
       } catch (e) {

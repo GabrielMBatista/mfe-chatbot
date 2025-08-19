@@ -61,12 +61,62 @@ export const GabsIAWidget = ({
       run: true,
       steps: [
         {
-          target: ".gabs-avatar",
-          content: "Este é o assistente G•One. Clique para interagir!",
+          target: ".gabs-avatar", // Widget do assistente G•One
+          content:
+            "Este é o G•One, assistente do portfólio. Clique para interagir ou buscar explicações rápidas nas áreas marcadas.",
         },
         {
-          target: ".some-other-element",
-          content: "Outro passo fixo do tour.",
+          target: "header", // Cabeçalho do site
+          content:
+            "Navegue pelas principais seções do portfólio e alterne o tema aqui.",
+        },
+        {
+          target: ".projects-section, [data-gabs='projects']", // Seção de projetos
+          content:
+            "Aqui estão os projetos desenvolvidos. Use filtros e busca para explorar.",
+        },
+        {
+          target: ".theme-toggle, [data-gabs='theme']", // Alternância de tema
+          content: "Alterne entre modo claro e escuro para melhor experiência.",
+        },
+        {
+          target: ".search input", // Barra de busca de projetos
+          content: "Pesquise projetos por nome, tecnologia ou descrição.",
+        },
+        {
+          target: ".categories-filter, [data-gabs='filters']", // Filtros de categoria
+          content:
+            "Filtre os projetos por categoria: Frontend, Backend, Fullstack, Mobile.",
+        },
+        {
+          target: "[data-gabs^='featured-project-']", // Projetos em destaque
+          content: "Veja os projetos em destaque, com demonstração e código.",
+        },
+        {
+          target: "[data-gabs^='project-']", // Card de projeto individual
+          content:
+            "Clique para ver detalhes, acessar demo ou código no GitHub.",
+        },
+        {
+          target: "[data-gabs^='github-link-']", // Link para GitHub do projeto
+          content: "Acesse o repositório do projeto diretamente pelo botão.",
+        },
+        {
+          target: "[data-gabs^='view-details-']", // Botão de ver detalhes/demo
+          content: "Veja uma prévia do projeto em diferentes resoluções.",
+        },
+        {
+          target: ".cta-section, [data-gabs='cta']", // Seção de chamada para ação
+          content: "Entre em contato ou saiba mais sobre o desenvolvedor.",
+        },
+        {
+          target: "footer", // Rodapé do site
+          content: "Links úteis, redes sociais e informações adicionais.",
+        },
+        {
+          target: ".about-section, [data-gabs='about']", // Sobre/Experiência
+          content:
+            "Conheça a trajetória profissional e educacional do Gabriel.",
         },
       ],
     }));

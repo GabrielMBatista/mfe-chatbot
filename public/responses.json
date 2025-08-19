@@ -60,17 +60,5 @@
         "anchorId": "experiencia"
       }
     ]
-  },
-  "tourSteps": [
-    {
-      "selector": "#experiencia",
-      "message": "Aqui você encontra as experiências.",
-      "action": "Próximo"
-    },
-    {
-      "selector": "#projetos",
-      "message": "Aqui você vê os projetos.",
-      "action": "Finalizar"
-    }
-  ]
+  }
 }
