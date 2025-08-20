@@ -1,9 +1,10 @@
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { useGabsIAWidget } from "@/hooks/useGabsIAWidget";
 import { HelpCircle, Play } from "lucide-react";
-import { useState, useEffect } from "react";
 import { CustomTour } from "@/components/CustomTour";
 import { DockPos, GabsIAWidgetProps, TourStep } from "Chatbot/GabsIAWidget";
+import { useTourController } from "@/hooks/useTourController";
+import React from "react";
 
 // Adiciona nova prop opcional para steps fixos
 export interface GabsIAWidgetConfigurableProps extends GabsIAWidgetProps {
@@ -14,16 +15,24 @@ export interface GabsIAWidgetConfigurableProps extends GabsIAWidgetProps {
 
 export const GabsIAWidget = ({
   fixedPosition,
-  fixedTourSteps, // nova prop
-  initialMessage, // Adiciona a prop
-  onNavigate, // Nova prop
+  fixedTourSteps,
+  initialMessage,
+  onNavigate,
 }: GabsIAWidgetConfigurableProps & {
   initialMessage?: { question: string; answer: string; owner: "gone" };
 }) => {
+  const base =
+    process.env.NEXT_PUBLIC_CHATBOT_ORIGIN || "http://localhost:3001";
+  const ASSETS = {
+    anchor: `${base}/widget-anchor.lottie`,
+    loading: `${base}/Loading.lottie`,
+    typing: `${base}/Typing.lottie`, // Adicionado
+  };
+
   const {
     reopenGabsIAWidget,
-    history, // Use o estado do hook
-    setHistory, // Use o setter do hook
+    history,
+    setHistory,
     disabled,
     setDisabled,
     contextMessage,
@@ -44,7 +53,6 @@ export const GabsIAWidget = ({
     sendQuestion,
     stylePosition,
     localStorageKey,
-    ASSETS,
     dragOffset,
     onmousemove,
     onmouseup,
@@ -52,237 +60,16 @@ export const GabsIAWidget = ({
     ontouchend,
   } = useGabsIAWidget({ fixedPosition, initialMessage });
 
-  const [tourState, setTourState] = useState<{
-    run: boolean;
-    steps: TourStep[]; // Corrigido para sempre TourStep
-  }>({
-    run: false,
-    steps: [],
-  });
-
-  const [dynamicTourEnabled, setDynamicTourEnabled] = useState(false); // Estado para ativar/desativar o tour dinâmico
-
-  // Steps default caso não venha via prop
-  const defaultFixedSteps: TourStep[] = [];
-
-  // Função para navegar para a rota do step atual
-  const navigateToStepRoute = (stepIndex: number, stepsArr: TourStep[]) => {
-    const step = stepsArr[stepIndex];
-    if (step && step.route && typeof onNavigate === "function") {
-      onNavigate(step.route);
-    }
-  };
-
-  // Função para navegar para a rota do step atual e garantir destaque após navegação
-  const goToStepWithRoute = async (stepIndex: number, stepsArr: TourStep[]) => {
-    const step = stepsArr[stepIndex];
-    if (step && step.route && typeof onNavigate === "function") {
-      onNavigate(step.route);
-      // Polling para aguardar renderização do DOM e elemento alvo aparecer
-      let tries = 0;
-      let found = false;
-      const targetSelector = stepsArr[stepIndex]?.target;
-      while (tries < 20) {
-        await new Promise((resolve) => setTimeout(resolve, 150));
-        const el = targetSelector
-          ? document.querySelector(targetSelector)
-          : null;
-        console.log(
-          `[Tour] Tentativa ${tries + 1}: procurando target "${targetSelector}"`,
-          el
-        );
-        if (el) {
-          found = true;
-          break;
-        }
-        tries++;
-      }
-      if (!found) {
-        console.warn(
-          `[Tour] Target não encontrado após navegação: "${targetSelector}"`
-        );
-      }
-    }
-    // Atualiza o step do tour após navegação
-    setTourState((prev) => ({
-      ...prev,
-      steps: stepsArr,
-      run: true,
-    }));
-  };
-
-  const startDynamicTour = (gabsValue: string) => {
-    const dynamicSteps: TourStep[] = [
-      {
-        target: `[data-gabs="${gabsValue}"]`,
-        content: `Detalhes do item: ${gabsValue}`,
-      },
-    ];
-    setTourState((prev) => ({
-      ...prev,
-      run: true,
-      steps: dynamicSteps,
-    }));
-  };
-
-  const handleTourComplete = () =>
-    setTourState((prev) => ({ ...prev, run: false }));
-
-  // Adicione um estado para controlar o step atual do tour
-  const [currentStep, setCurrentStep] = useState(0);
-
-  // Handler para avançar o step do tour com redirect se necessário
-  const handleNextStep = async (stepIndex: number) => {
-    const stepsArr =
-      tourState.steps && tourState.steps.length > 0
-        ? tourState.steps
-        : fixedTourSteps && fixedTourSteps.length > 0
-          ? fixedTourSteps
-          : defaultFixedSteps;
-
-    const nextStep = stepIndex + 1;
-    const nextRoute = stepsArr[nextStep]?.route;
-    const currentRoute =
-      typeof window !== "undefined" ? window.location.pathname : "";
-
-    if (
-      nextRoute &&
-      nextRoute !== currentRoute &&
-      typeof onNavigate === "function"
-    ) {
-      onNavigate(nextRoute);
-      // Aguarda o DOM renderizar e o elemento alvo aparecer
-      let tries = 0;
-      let found = false;
-      const targetSelector = stepsArr[nextStep]?.target;
-      while (tries < 10) {
-        await new Promise((resolve) => setTimeout(resolve, 120));
-        const el = targetSelector
-          ? document.querySelector(targetSelector)
-          : null;
-        console.log(
-          `[Tour] Tentativa ${tries + 1}: procurando target "${targetSelector}"`,
-          el
-        );
-        if (el) {
-          found = true;
-          break;
-        }
-        tries++;
-      }
-      if (!found) {
-        console.warn(
-          `[Tour] Target não encontrado após navegação: "${targetSelector}"`
-        );
-      }
-      setCurrentStep(nextStep);
-    } else {
-      setCurrentStep(nextStep);
-    }
-    setTourState((prev) => ({
-      ...prev,
-      run: true,
-      steps: stepsArr,
-    }));
-  };
-
-  // Handler para voltar o step do tour com redirect se necessário
-  const handlePrevStep = async (stepIndex: number) => {
-    const stepsArr =
-      tourState.steps && tourState.steps.length > 0
-        ? tourState.steps
-        : fixedTourSteps && fixedTourSteps.length > 0
-          ? fixedTourSteps
-          : defaultFixedSteps;
-
-    const prevStep = stepIndex - 1;
-    if (prevStep < 0) return;
-    const prevRoute = stepsArr[prevStep]?.route;
-    const currentRoute =
-      typeof window !== "undefined" ? window.location.pathname : "";
-
-    if (
-      prevRoute &&
-      prevRoute !== currentRoute &&
-      typeof onNavigate === "function"
-    ) {
-      onNavigate(prevRoute);
-      // Aguarda o DOM renderizar e o elemento alvo aparecer
-      let tries = 0;
-      let found = false;
-      const targetSelector = stepsArr[prevStep]?.target;
-      while (tries < 10) {
-        await new Promise((resolve) => setTimeout(resolve, 120));
-        const el = targetSelector
-          ? document.querySelector(targetSelector)
-          : null;
-        console.log(
-          `[Tour] Tentativa ${tries + 1}: procurando target "${targetSelector}"`,
-          el
-        );
-        if (el) {
-          found = true;
-          break;
-        }
-        tries++;
-      }
-      if (!found) {
-        console.warn(
-          `[Tour] Target não encontrado após navegação: "${targetSelector}"`
-        );
-      }
-      setCurrentStep(prevStep);
-    } else {
-      setCurrentStep(prevStep);
-    }
-    setTourState((prev) => ({
-      ...prev,
-      run: true,
-      steps: stepsArr,
-    }));
-  };
-
-  // Sempre reseta o step ao iniciar o tour
-  const startFixedTour = async () => {
-    const stepsArr =
-      fixedTourSteps && fixedTourSteps.length > 0
-        ? fixedTourSteps
-        : defaultFixedSteps;
-    setCurrentStep(0);
-    if (stepsArr[0]?.route) {
-      await goToStepWithRoute(0, stepsArr);
-    } else {
-      setTourState((prev) => ({
-        ...prev,
-        run: true,
-        steps: stepsArr,
-      }));
-    }
-  };
-
-  useEffect(() => {
-    const handleDataGabsClick = (e: MouseEvent) => {
-      if (!dynamicTourEnabled) return;
-
-      const target = e.target as HTMLElement;
-      const gabsValue = target
-        .closest("[data-gabs]")
-        ?.getAttribute("data-gabs");
-      if (gabsValue) {
-        startDynamicTour(gabsValue);
-      }
-    };
-
-    document.addEventListener("click", handleDataGabsClick);
-
-    return () => {
-      document.removeEventListener("click", handleDataGabsClick);
-    };
-  }, [dynamicTourEnabled]); // Certifique-se de que `dynamicTourEnabled` seja estável
-
-  useEffect(() => {
-    if (!tourState.run) return; // Evita reexecução desnecessária
-  }, []); // Removemos `tourState.run` para evitar loops
+  const {
+    tourState,
+    dynamicTourEnabled,
+    setDynamicTourEnabled,
+    currentStep,
+    handleTourComplete,
+    handleNextStep,
+    handlePrevStep,
+    startFixedTour,
+  } = useTourController({ fixedTourSteps, onNavigate });
 
   // Define o valor do data-gabs conforme a rota
   const getGabsValue = () => {
@@ -300,8 +87,8 @@ export const GabsIAWidget = ({
         onComplete={handleTourComplete}
         onSkip={handleTourComplete}
         onNextStep={handleNextStep}
-        onPrevStep={handlePrevStep} // NOVO
-        specificStep={currentStep} // Passa o step explicitamente
+        onPrevStep={handlePrevStep}
+        specificStep={currentStep}
       />
       <div
         ref={widgetRef}
@@ -367,44 +154,44 @@ export const GabsIAWidget = ({
                 marginBottom: 4,
               }}
             >
+              <strong>G•One</strong>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <strong>G•One</strong>{" "}
                 <HelpCircle
                   size={24}
                   color="#0028af"
-                  onClick={startFixedTour} // Ativa o tour fixo
+                  onClick={startFixedTour}
                   style={{ cursor: "pointer" }}
                 />
                 <Play
                   size={24}
                   className="dynamic-tour"
-                  color={dynamicTourEnabled ? "#28a745" : "#ccc"} // Cor muda com base no estado
-                  onClick={() => setDynamicTourEnabled((prev) => !prev)} // Alterna o estado do tour dinâmico
+                  color={dynamicTourEnabled ? "#28a745" : "#ccc"}
+                  onClick={() => setDynamicTourEnabled((prev) => !prev)}
                   style={{ cursor: "pointer" }}
                 />
+                <button
+                  onClick={() => {
+                    try {
+                      localStorage.setItem(localStorageKey, "true");
+                    } catch {}
+                    setDisabled(true);
+                    setContextMessage(null);
+                    setAiReply(null);
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    fontSize: 16,
+                    cursor: "pointer",
+                    color: "#999",
+                    padding: 0,
+                    margin: 0,
+                  }}
+                  title="Fechar"
+                >
+                  ✖
+                </button>
               </div>
-              <button
-                onClick={() => {
-                  try {
-                    localStorage.setItem(localStorageKey, "true");
-                  } catch {}
-                  setDisabled(true);
-                  setContextMessage(null);
-                  setAiReply(null);
-                }}
-                style={{
-                  background: "none",
-                  border: "none",
-                  fontSize: 16,
-                  cursor: "pointer",
-                  color: "#999",
-                  padding: 0,
-                  margin: 0,
-                }}
-                title="Fechar"
-              >
-                ✖
-              </button>
             </div>
 
             <div
@@ -420,75 +207,113 @@ export const GabsIAWidget = ({
                 scrollbarColor: "#0028af #f1f1f1",
               }}
             >
-              {/* Oculta question do initialMessage (index 1 ou 0) se estiver vazia */}
-              {history.map((entry) => (
-                <div key={`pair-${entry.index ?? entry.answer}`}>
-                  {/* Mensagem do usuário */}
-                  {entry.question && (
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "flex-end",
-                        textAlign: "right",
-                      }}
-                    >
+              {history.map((entry, idx) => {
+                const isLast = idx === history.length - 1;
+                // Sempre mostra o balão da pergunta do usuário
+                return (
+                  <React.Fragment key={`pair-${entry.index ?? entry.answer}`}>
+                    {entry.question && (
                       <div
                         style={{
-                          background: "#0028af",
-                          color: "#fff",
-                          padding: "10px 14px",
-                          borderRadius: "12px 0 12px 12px",
-                          maxWidth: "80%",
-                          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                          marginBottom: 2,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "flex-end",
+                          textAlign: "right",
                         }}
                       >
-                        <p
+                        <div
                           style={{
-                            margin: 0,
-                            fontSize: "14px",
-                            lineHeight: "1.4",
+                            background: "#0028af",
+                            color: "#fff",
+                            padding: "10px 14px",
+                            borderRadius: "12px 0 12px 12px",
+                            maxWidth: "80%",
+                            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                            marginBottom: 2,
                           }}
                         >
-                          {entry.question}
-                        </p>
+                          <p
+                            style={{
+                              margin: 0,
+                              fontSize: "14px",
+                              lineHeight: "1.4",
+                            }}
+                          >
+                            {entry.question}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  {/* Mensagem do G•One */}
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "flex-start",
-                      textAlign: "left",
-                    }}
-                  >
-                    <div
-                      style={{
-                        background: "#f1f1f1",
-                        color: "#000",
-                        padding: "10px 14px",
-                        borderRadius: "0 12px 12px 12px",
-                        maxWidth: "80%",
-                        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                        marginBottom: 2,
-                      }}
-                    >
-                      <p
+                    )}
+                    {/* Se for o último item e answer está vazio, mostra o balão de loading */}
+                    {isLast && entry.answer === "" ? (
+                      <div
                         style={{
-                          margin: 0,
-                          fontSize: "14px",
-                          lineHeight: "1.4",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "flex-start",
+                          textAlign: "left",
                         }}
                       >
-                        {entry.answer}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                        <div
+                          style={{
+                            background: "#f1f1f1",
+                            color: "#000",
+                            padding: "1px 1px",
+                            borderRadius: "0 12px 12px 12px",
+                            maxWidth: "95%",
+                            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                            marginBottom: 1,
+                            minHeight: 24,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "flex-start",
+                          }}
+                        >
+                          <DotLottieReact
+                            src={ASSETS.typing ?? "/Typing.lottie"}
+                            loop
+                            autoplay
+                            style={{ width: 36, height: 36 }} // aumentado
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      entry.answer && (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "flex-start",
+                            textAlign: "left",
+                          }}
+                        >
+                          <div
+                            style={{
+                              background: "#f1f1f1",
+                              color: "#000",
+                              padding: "10px 14px",
+                              borderRadius: "0 12px 12px 12px",
+                              maxWidth: "80%",
+                              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                              marginBottom: 2,
+                            }}
+                          >
+                            <p
+                              style={{
+                                margin: 0,
+                                fontSize: "14px",
+                                lineHeight: "1.4",
+                              }}
+                            >
+                              {entry.answer}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </div>
 
             {
@@ -533,7 +358,7 @@ export const GabsIAWidget = ({
             className="gabs-avatar"
             role="button"
             aria-label="Abrir G•One"
-            title="Arraste-me ou clique em um item do portfólio"
+            title="clique duas vezes para abrir o assistente"
             data-gabs={getGabsValue()}
             onDoubleClick={() => {
               if (disabled) {

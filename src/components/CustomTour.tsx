@@ -96,27 +96,49 @@ export const CustomTour: React.FC<
   const calculatePosition = useCallback(
     (targetElement: Element, placement?: string) => {
       const rect = targetElement.getBoundingClientRect();
-
       setTargetRect(rect);
-
-      let x = rect.left + rect.width / 2 - tooltipSize.width / 2;
-      let y = rect.bottom + 15;
 
       const margin = 20;
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
+      const tooltipW = tooltipSize.width;
+      const tooltipH = tooltipSize.height;
 
-      // Ajustar para manter o card visível na área da viewport
-      if (x < margin) x = margin;
-      else if (x + tooltipSize.width > viewportWidth - margin) {
-        x = viewportWidth - tooltipSize.width - margin;
+      let x = rect.left + rect.width / 2 - tooltipW / 2;
+      let y = rect.bottom + 15; // abaixo
+
+      // Preferência: abaixo
+      if (y + tooltipH <= viewportHeight - margin) {
+        // ok, abaixo
+      }
+      // Acima
+      else if (rect.top - tooltipH - 15 >= margin) {
+        y = rect.top - tooltipH - 15;
+      }
+      // Direita
+      else if (rect.right + 15 + tooltipW <= viewportWidth - margin) {
+        x = rect.right + 15;
+        y = rect.top + rect.height / 2 - tooltipH / 2;
+      }
+      // Esquerda
+      else if (rect.left - 15 - tooltipW >= margin) {
+        x = rect.left - tooltipW - 15;
+        y = rect.top + rect.height / 2 - tooltipH / 2;
+      }
+      // Centro (fallback)
+      else {
+        x = viewportWidth / 2 - tooltipW / 2;
+        y = viewportHeight / 2 - tooltipH / 2;
       }
 
-      if (y + tooltipSize.height > viewportHeight - margin) {
-        y = rect.top - tooltipSize.height - 15;
-        if (y < margin) {
-          y = rect.top + rect.height / 2 - tooltipSize.height / 2;
-        }
+      // Ajuste para não sair da tela
+      if (x < margin) x = margin;
+      else if (x + tooltipW > viewportWidth - margin) {
+        x = viewportWidth - tooltipW - margin;
+      }
+      if (y < margin) y = margin;
+      else if (y + tooltipH > viewportHeight - margin) {
+        y = viewportHeight - tooltipH - margin;
       }
 
       setTooltipPosition({ x, y });
