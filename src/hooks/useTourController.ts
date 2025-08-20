@@ -94,10 +94,13 @@ export function useTourController({
   );
 
   const startDynamicTour = useCallback((gabsValue: string) => {
+    const el = document.querySelector(`[data-gabs="${gabsValue}"]`);
+    const gabsContent =
+      el?.getAttribute("gabs-content") || `Detalhes do item: ${gabsValue}`;
     const dynamicSteps: TourStep[] = [
       {
         target: `[data-gabs="${gabsValue}"]`,
-        content: `Detalhes do item: ${gabsValue}`,
+        content: gabsContent,
       },
     ];
     setTourState((prev) => ({
