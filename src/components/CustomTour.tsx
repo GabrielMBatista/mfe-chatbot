@@ -296,6 +296,9 @@ export const CustomTour: React.FC<
 
   const currentStepData = steps[currentStep];
   const isCenter = currentStepData.placement === "center";
+  const total = Math.max(steps.length, 1);
+  const clampedStep = Math.min(Math.max(currentStep, 0), total - 1);
+  const percent = ((clampedStep + 1) / total) * 100;
 
   return (
     <>
@@ -336,36 +339,70 @@ export const CustomTour: React.FC<
           top: tooltipPosition.y,
           transform: targetRect ? undefined : "translate(-50%, -50%)",
           maxHeight: "80vh",
-          overflowY: "auto",
-          background: hsl(t.card),
+          overflow: "hidden", // evita scroll bleed nas bordas arredondadas
+          background: `linear-gradient(145deg, ${hsl(t.card)}, ${hsl(t.muted)})`,
           border: `1px solid ${hsl(t.border)}`,
-          boxShadow: `0 10px 30px -5px ${hsl(t.primary, 0.2)}`,
+          boxShadow: `0 12px 36px -8px ${hsl(t.primary, 0.25)}, 0 2px 12px -6px rgba(0,0,0,.25)`,
           borderRadius: "12px",
-          transition: "all 0.3s ease-in-out",
+          transition:
+            "transform .2s ease, box-shadow .2s ease, opacity .2s ease",
           maxWidth: "24rem",
+          opacity: 1,
+          backdropFilter: "blur(6px)",
         }}
       >
-        <CardContent style={{ padding: "1.5rem" }}>
+        {/* Arrow (opcional) */}
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: "auto 0 100% 0",
+            margin: "0 auto",
+            width: 12,
+            height: 12,
+            borderLeft: `1px solid ${hsl(t.border)}`,
+            borderTop: `1px solid ${hsl(t.border)}`,
+            background: hsl(t.card),
+            transform: "rotate(45deg)",
+            boxShadow: "0 -6px 18px -8px rgba(0,0,0,.25)",
+          }}
+        />
+
+        <CardContent style={{ padding: "1.5rem", overflowY: "auto" }}>
           <div
             style={{ display: "flex", flexDirection: "column", gap: "16px" }}
           >
             {/* Close */}
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <Button
+                aria-label="Fechar"
                 variant="ghost"
                 size="icon"
                 onClick={handleSkip}
                 style={{
-                  width: "24px",
-                  height: "24px",
-                  borderRadius: "50%",
-                  transition: "background-color 0.3s ease-in-out",
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "9999px",
+                  color: hsl(t.mutedForeground),
+                  transition:
+                    "background-color .18s ease, transform .12s ease, box-shadow .18s ease, color .18s ease",
+                  outline: "none",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = hsl(t.primary, 0.1);
+                  e.currentTarget.style.backgroundColor = hsl(t.primary, 0.12);
+                  e.currentTarget.style.color = hsl(t.accentForeground);
+                  e.currentTarget.style.transform = "scale(1.06)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = "transparent";
+                  e.currentTarget.style.color = hsl(t.mutedForeground);
+                  e.currentTarget.style.transform = "scale(1)";
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.boxShadow = `0 0 0 3px ${hsl(t.accent, 0.35)}`;
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.boxShadow = "none";
                 }}
               >
                 <X style={{ height: "16px", width: "16px" }} />
@@ -374,42 +411,182 @@ export const CustomTour: React.FC<
 
             {/* Content */}
             <div
-              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+                color: hsl(t.foreground),
+                lineHeight: 1.6,
+              }}
             >
               {currentStepData.content}
             </div>
 
-            {/* Progress */}
-            {!isContextualHelp && (
+            {/* Barra de progresso só para tour dinâmico (1 passo) */}
+            {total === 1 && (
               <div
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(percent)}
+                aria-label="Progresso"
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  fontSize: "14px",
+                  position: "relative",
+                  height: 8,
+                  borderRadius: 9999,
+                  background: `linear-gradient(0deg, ${hsl(t.muted)} 0%, ${hsl(
+                    t.muted
+                  )} 100%)`,
+                  overflow: "hidden",
+                  margin: "12px 0 0 0",
+                }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background:
+                      "repeating-linear-gradient(45deg, rgba(0,0,0,.05) 0 6px, rgba(0,0,0,.02) 6px 12px)",
+                    opacity: 0.4,
+                    pointerEvents: "none",
+                  }}
+                />
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${percent}%`,
+                    background: `linear-gradient(90deg, ${hsl(
+                      t.primary
+                    )}, ${hsl(t.accent)})`,
+                    boxShadow: `inset 0 0 12px rgba(255,255,255,.25)`,
+                    transition: "width .45s cubic-bezier(.22,.8,.36,1)",
+                    willChange: "width",
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Progress */}
+            {!isContextualHelp && total > 1 && (
+              <div
+                role="group"
+                aria-label="Progresso do passo a passo"
+                style={{
+                  display: "grid",
+                  gap: 8,
+                  fontSize: 14,
                   color: hsl(t.mutedForeground),
                 }}
               >
-                <span>
-                  {currentStep + 1} of {steps.length}
-                </span>
-                <div style={{ display: "flex", gap: "4px" }}>
-                  {steps.map((_, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        height: "8px",
-                        width: "8px",
-                        borderRadius: "9999px",
-                        background:
-                          index === currentStep ? hsl(t.primary) : hsl(t.muted),
-                        transition: "background-color 0.3s ease-in-out",
-                      }}
-                    />
-                  ))}
+                {/* Linha superior: contagem + dots */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span
+                    aria-live="polite"
+                    style={{
+                      fontWeight: 500,
+                      color: hsl(t.foreground),
+                      letterSpacing: 0.2,
+                    }}
+                  >
+                    {clampedStep + 1} de {total}
+                  </span>
+
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {Array.from({ length: total }).map((_, index) => {
+                      const isActive = index === clampedStep;
+                      return (
+                        <div
+                          key={index}
+                          aria-current={isActive ? "step" : undefined}
+                          title={`Etapa ${index + 1}`}
+                          style={{
+                            position: "relative",
+                            height: 10,
+                            width: isActive ? 18 : 10,
+                            borderRadius: 9999,
+                            background: isActive
+                              ? `linear-gradient(90deg, ${hsl(
+                                  t.primary
+                                )}, ${hsl(t.primaryForeground)})`
+                              : hsl(t.muted),
+                            boxShadow: isActive
+                              ? `0 0 0 4px ${hsl(t.muted)}`
+                              : "none",
+                            transition:
+                              "width .28s ease, background-color .28s ease, box-shadow .28s ease, transform .18s ease",
+                            transform: isActive ? "translateY(-1px)" : "none",
+                            cursor: "default",
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
+
+                {/* Barra de progresso */}
+                <div
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(percent)}
+                  aria-label="Progresso"
+                  style={{
+                    position: "relative",
+                    height: 6,
+                    borderRadius: 9999,
+                    background: `linear-gradient(0deg, ${hsl(t.muted)} 0%, ${hsl(
+                      t.muted
+                    )} 100%)`,
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      background:
+                        "repeating-linear-gradient(45deg, rgba(0,0,0,.05) 0 6px, rgba(0,0,0,.02) 6px 12px)",
+                      opacity: 0.4,
+                      pointerEvents: "none",
+                    }}
+                  />
+                  <div
+                    style={{
+                      height: "100%",
+                      width: `${percent}%`,
+                      background: `linear-gradient(90deg, ${hsl(
+                        t.primary
+                      )}, ${hsl(t.accent)})`,
+                      boxShadow: `inset 0 0 12px rgba(255,255,255,.25)`,
+                      transition: "width .45s cubic-bezier(.22,.8,.36,1)",
+                      willChange: "width",
+                    }}
+                  />
+                </div>
+
+                <span style={{ fontSize: 12, opacity: 0.8 }}>
+                  Etapa {clampedStep + 1} em andamento
+                </span>
               </div>
             )}
+
+            {/* Divider sutil antes das ações */}
+            <div
+              aria-hidden
+              style={{
+                height: 1,
+                background: `linear-gradient(90deg, transparent, ${hsl(
+                  t.border
+                )}, transparent)`,
+                marginTop: 4,
+              }}
+            />
 
             {/* Actions */}
             <div
@@ -429,6 +606,8 @@ export const CustomTour: React.FC<
                 >
                   Got it!
                 </Button>
+              ) : total === 1 ? (
+                <div style={{ width: "100%" }} />
               ) : (
                 <>
                   <Button
@@ -450,7 +629,7 @@ export const CustomTour: React.FC<
                       variant="ghost"
                       size="sm"
                       onClick={handlePrev}
-                      disabled={currentStep === 0}
+                      disabled={clampedStep === 0}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -470,8 +649,8 @@ export const CustomTour: React.FC<
                         gap: "4px",
                       }}
                     >
-                      {currentStep === steps.length - 1 ? "Finish" : "Next"}
-                      {currentStep !== steps.length - 1 && (
+                      {clampedStep === total - 1 ? "Finish" : "Next"}
+                      {clampedStep !== total - 1 && (
                         <ChevronRight
                           style={{ height: "12px", width: "12px" }}
                         />

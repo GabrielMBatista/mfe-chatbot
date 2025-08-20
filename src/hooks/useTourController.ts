@@ -29,10 +29,6 @@ export function useTourController({
       try {
         localStorage.setItem(TOUR_STEP_STORAGE_KEY, String(currentStep));
       } catch {}
-    } else {
-      try {
-        localStorage.removeItem(TOUR_STEP_STORAGE_KEY);
-      } catch {}
     }
   }, [currentStep, tourState.run, tourState.steps.length]);
 
@@ -94,6 +90,9 @@ export function useTourController({
   );
 
   const startDynamicTour = useCallback((gabsValue: string) => {
+    try {
+      localStorage.removeItem(TOUR_STEP_STORAGE_KEY);
+    } catch {}
     const el = document.querySelector(`[data-gabs="${gabsValue}"]`);
     const gabsContent =
       el?.getAttribute("gabs-content") || `Detalhes do item: ${gabsValue}`;
@@ -110,10 +109,9 @@ export function useTourController({
     }));
   }, []);
 
-  const handleTourComplete = useCallback(
-    () => setTourState((prev) => ({ ...prev, run: false })),
-    []
-  );
+  const handleTourComplete = useCallback(() => {
+    setTourState((prev) => ({ ...prev, run: false }));
+  }, []);
 
   const handleNextStep = useCallback(
     async (stepIndex: number) => {
@@ -235,7 +233,7 @@ export function useTourController({
         steps: stepsArr,
       }));
     }
-  }, [fixedTourSteps, goToStepWithRoute]);
+  }, [fixedTourSteps, goToStepWithRoute, defaultFixedSteps]);
 
   const getDynamicTourFromStorage = () => {
     try {
