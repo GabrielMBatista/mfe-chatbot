@@ -19,19 +19,17 @@ export function useTourController({
 
   const defaultFixedSteps: TourStep[] = [];
 
-  const POLLING_TIMEOUT_MS = 2000; // tempo máximo de polling em ms
-  const POLLING_INTERVAL_MS = 120; // intervalo entre tentativas
+  const POLLING_TIMEOUT_MS = 2000;
+  const POLLING_INTERVAL_MS = 120;
 
   const TOUR_STEP_STORAGE_KEY = "gabs-guided-tour-step";
 
-  // Salva o step atual do tour fixo no localStorage
   useEffect(() => {
     if (tourState.run && tourState.steps.length > 0) {
       try {
         localStorage.setItem(TOUR_STEP_STORAGE_KEY, String(currentStep));
       } catch {}
     } else {
-      // Limpa ao finalizar
       try {
         localStorage.removeItem(TOUR_STEP_STORAGE_KEY);
       } catch {}
@@ -58,10 +56,6 @@ export function useTourController({
           }
         }
         if (!found) {
-          console.warn(
-            `[Tour] Target não encontrado após navegação: "${targetSelector}"`
-          );
-          // Tenta avançar para o próximo step com target válido
           let nextValidStep = stepIndex + 1;
           while (
             nextValidStep < stepsArr.length &&
@@ -81,7 +75,6 @@ export function useTourController({
             }));
             return;
           } else {
-            // Finaliza o tour se não houver mais steps válidos
             setTourState((prev) => ({
               ...prev,
               run: false,
@@ -153,11 +146,6 @@ export function useTourController({
             break;
           }
         }
-        if (!found) {
-          console.warn(
-            `[Tour] Target não encontrado após navegação: "${targetSelector}"`
-          );
-        }
         setCurrentStep(nextStep);
       } else {
         setCurrentStep(nextStep);
@@ -206,11 +194,6 @@ export function useTourController({
             break;
           }
         }
-        if (!found) {
-          console.warn(
-            `[Tour] Target não encontrado após navegação: "${targetSelector}"`
-          );
-        }
         setCurrentStep(prevStep);
       } else {
         setCurrentStep(prevStep);
@@ -251,7 +234,6 @@ export function useTourController({
     }
   }, [fixedTourSteps, goToStepWithRoute]);
 
-  // Inicializa o estado do DynamicTour pelo localStorage
   const getDynamicTourFromStorage = () => {
     try {
       return localStorage.getItem("gabs-dynamic-tour") === "true";
@@ -263,7 +245,6 @@ export function useTourController({
     getDynamicTourFromStorage()
   );
 
-  // Setter que sincroniza com localStorage
   const setDynamicTourEnabled = useCallback(
     (value: boolean | ((prev: boolean) => boolean)) => {
       setDynamicTourEnabledState((prev) => {
@@ -281,14 +262,13 @@ export function useTourController({
     []
   );
 
-  // Sincroniza o estado ao trocar de página (popstate)
   useEffect(() => {
     const syncDynamicTour = () => {
       setDynamicTourEnabledState(getDynamicTourFromStorage());
     };
     window.addEventListener("popstate", syncDynamicTour);
-    window.addEventListener("pushstate", syncDynamicTour); // caso use pushstate customizado
-    window.addEventListener("replaceState", syncDynamicTour); // caso use replaceState customizado
+    window.addEventListener("pushstate", syncDynamicTour);
+    window.addEventListener("replaceState", syncDynamicTour);
     return () => {
       window.removeEventListener("popstate", syncDynamicTour);
       window.removeEventListener("pushstate", syncDynamicTour);
@@ -304,40 +284,27 @@ export function useTourController({
       if (!dynamicTourEnabled) return;
       const target = (e.target as HTMLElement)?.closest("[data-gabs]");
       if (!target) return;
-
-      // Ignora se for desabilitado
       if (target.hasAttribute("disabled")) return;
-
       const gabsValue = target.getAttribute("data-gabs");
       if (!gabsValue) return;
-
       const htmlTarget = target as HTMLElement;
       const tag = htmlTarget.tagName;
       const typeAttr = htmlTarget.getAttribute("type")?.toLowerCase();
-
-      // Botão de submit
       const isSubmit =
         tag === "BUTTON" &&
         (typeAttr === "submit" ||
           // @ts-ignore
           (htmlTarget as any).type === "submit");
-
-      // Link (a)
       const isLink =
         tag === "A" &&
         htmlTarget.hasAttribute("href") &&
         !htmlTarget.hasAttribute("target");
-
-      // Input submit
       const isInputSubmit =
         tag === "INPUT" &&
         (typeAttr === "submit" ||
           // @ts-ignore
           (htmlTarget as any).type === "submit");
-
-      // Elementos que devem bloquear ação primária no primeiro clique
       const shouldBlock = isSubmit || isLink || isInputSubmit;
-
       const now = Date.now();
       if (
         shouldBlock &&
@@ -348,10 +315,7 @@ export function useTourController({
         lastClickTime = now;
         e.preventDefault();
         e.stopPropagation();
-
-        // Para links, também bloqueia navegação via atributo href
         if (isLink) {
-          // Remove temporariamente o href para evitar navegação
           const originalHref = htmlTarget.getAttribute("href");
           htmlTarget.setAttribute(
             "data-gabs-original-href",
@@ -359,7 +323,6 @@ export function useTourController({
           );
           htmlTarget.removeAttribute("href");
           setTimeout(() => {
-            // Restaura o href após 2s ou no próximo clique
             if (htmlTarget.getAttribute("data-gabs-original-href")) {
               htmlTarget.setAttribute(
                 "href",
@@ -371,8 +334,6 @@ export function useTourController({
         }
         return;
       }
-
-      // Para outros elementos, mantém o fluxo anterior
       if (!shouldBlock) {
         if (lastGabsClicked !== gabsValue || now - lastClickTime > 2000) {
           startDynamicTour(gabsValue);
@@ -385,7 +346,6 @@ export function useTourController({
         lastGabsClicked = null;
         lastClickTime = 0;
       }
-      // No segundo clique, permite ação primária normalmente
     };
 
     document.addEventListener("pointerdown", handlePointerDown, true);
@@ -394,12 +354,10 @@ export function useTourController({
     };
   }, [dynamicTourEnabled, startDynamicTour]);
 
-  // Aplica destaque visual nos elementos interativos quando DynamicTour está ativo
   useEffect(() => {
     const selector = "[data-gabs]";
     const styleId = "gabs-dynamic-tour-style";
     let styleEl: HTMLStyleElement | null = null;
-
     if (dynamicTourEnabled) {
       styleEl = document.createElement("style");
       styleEl.id = styleId;
