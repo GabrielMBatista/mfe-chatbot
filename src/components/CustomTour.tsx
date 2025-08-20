@@ -32,16 +32,38 @@ function injectStyles(styles: string, targetDocument: Document = document) {
   targetDocument.head.appendChild(styleElement);
 }
 
-export const CustomTour: React.FC<CustomTourProps> = ({
+export const CustomTour: React.FC<
+  CustomTourProps & {
+    onNextStep?: (currentStep: number) => void;
+    onPrevStep?: (currentStep: number) => void;
+  }
+> = ({
   steps,
   isRunning,
   onComplete,
   onSkip,
   specificStep,
   isContextualHelp = false,
+  onNextStep,
+  onPrevStep, // NOVO
 }) => {
   const t = useLocalTokens();
-  // console.log("steps", steps);
+  console.log("isRunning", isRunning);
+  // Inicializa currentStep apenas uma vez, ou quando specificStep muda
+  const [currentStep, setCurrentStep] = useState(specificStep ?? 0);
+
+  useEffect(() => {
+    if (specificStep !== undefined) {
+      setCurrentStep(specificStep);
+    }
+  }, [specificStep]);
+
+  useEffect(() => {
+    if (isRunning && specificStep === undefined) {
+      setCurrentStep(0);
+    }
+  }, [isRunning, specificStep]);
+
   useEffect(() => {
     const styles = `
       .custom-tour-tooltip {
@@ -66,7 +88,6 @@ export const CustomTour: React.FC<CustomTourProps> = ({
     injectStyles(styles);
   }, []);
 
-  const [currentStep, setCurrentStep] = useState(specificStep ?? 0);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const [tooltipSize, setTooltipSize] = useState({ width: 320, height: 200 });
@@ -179,11 +200,6 @@ export const CustomTour: React.FC<CustomTourProps> = ({
     }
   }, [currentStep, isRunning, steps, calculatePosition]);
 
-  // Reseta quando vem specificStep
-  useEffect(() => {
-    if (specificStep !== undefined) setCurrentStep(specificStep);
-  }, [specificStep]);
-
   // Atualiza ao clicar no mesmo item ou em um novo
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -231,12 +247,25 @@ export const CustomTour: React.FC<CustomTourProps> = ({
   }, [currentStep, isRunning, steps, observeTargetVisibility]);
 
   const handleNext = () => {
-    if (currentStep < steps.length - 1) setCurrentStep(currentStep + 1);
-    else onComplete();
+    if (currentStep < steps.length - 1) {
+      if (onNextStep) {
+        onNextStep(currentStep);
+      } else {
+        setCurrentStep(currentStep + 1);
+      }
+    } else {
+      onComplete();
+    }
   };
 
   const handlePrev = () => {
-    if (currentStep > 0) setCurrentStep(currentStep - 1);
+    if (currentStep > 0) {
+      if (onPrevStep) {
+        onPrevStep(currentStep);
+      } else {
+        setCurrentStep(currentStep - 1);
+      }
+    }
   };
 
   const handleSkip = () => onSkip();

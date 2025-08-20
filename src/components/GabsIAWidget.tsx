@@ -57,25 +57,13 @@ export const GabsIAWidget = ({
     steps: TourStep[]; // Corrigido para sempre TourStep
   }>({
     run: false,
-    steps: [
-      {
-        target: ".gabs-avatar",
-        content: "Este é o assistente G•One. Clique para interagir!",
-      },
-    ],
+    steps: [],
   });
 
   const [dynamicTourEnabled, setDynamicTourEnabled] = useState(false); // Estado para ativar/desativar o tour dinâmico
 
   // Steps default caso não venha via prop
-  const defaultFixedSteps: TourStep[] = [
-    {
-      target: ".gabs-avatar",
-      content:
-        "Este é o G•One, assistente do portfólio. Clique para interagir ou buscar explicações rápidas nas áreas marcadas.",
-      route: "/",
-    },
-  ];
+  const defaultFixedSteps: TourStep[] = [];
 
   // Função para navegar para a rota do step atual
   const navigateToStepRoute = (stepIndex: number, stepsArr: TourStep[]) => {
@@ -90,61 +78,36 @@ export const GabsIAWidget = ({
     const step = stepsArr[stepIndex];
     if (step && step.route && typeof onNavigate === "function") {
       onNavigate(step.route);
-      // Aguarda a navegação e renderização do DOM
-      await new Promise((resolve) => setTimeout(resolve, 350));
+      // Polling para aguardar renderização do DOM e elemento alvo aparecer
+      let tries = 0;
+      let found = false;
+      const targetSelector = stepsArr[stepIndex]?.target;
+      while (tries < 20) {
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        const el = targetSelector
+          ? document.querySelector(targetSelector)
+          : null;
+        console.log(
+          `[Tour] Tentativa ${tries + 1}: procurando target "${targetSelector}"`,
+          el
+        );
+        if (el) {
+          found = true;
+          break;
+        }
+        tries++;
+      }
+      if (!found) {
+        console.warn(
+          `[Tour] Target não encontrado após navegação: "${targetSelector}"`
+        );
+      }
     }
     // Atualiza o step do tour após navegação
     setTourState((prev) => ({
       ...prev,
       steps: stepsArr,
       run: true,
-    }));
-  };
-
-  // Atualiza a navegação ao iniciar o tour
-  useEffect(() => {
-    if (!tourState.run) return;
-    const stepsArr =
-      fixedTourSteps && fixedTourSteps.length > 0
-        ? fixedTourSteps
-        : defaultFixedSteps;
-    // Se o primeiro step tem rota, navega e só depois ativa o tour
-    if (stepsArr[0]?.route) {
-      goToStepWithRoute(0, stepsArr);
-    } else {
-      navigateToStepRoute(0, stepsArr);
-    }
-  }, [tourState.run]);
-
-  // Navega ao avançar no tour
-  useEffect(() => {
-    if (!tourState.run) return;
-    const stepsArr =
-      fixedTourSteps && fixedTourSteps.length > 0
-        ? fixedTourSteps
-        : defaultFixedSteps;
-    let currentStepIndex = 0;
-    if (tourState.steps && tourState.steps.length > 0) {
-      currentStepIndex = tourState.steps.findIndex(
-        (step) => step.target === tourState.steps[0].target
-      );
-      // Se o step atual tem rota, navega e só depois ativa o tour
-      if (stepsArr[currentStepIndex]?.route) {
-        goToStepWithRoute(currentStepIndex, stepsArr);
-      } else {
-        navigateToStepRoute(currentStepIndex, stepsArr);
-      }
-    }
-  }, [tourState.steps, tourState.run]);
-
-  const startFixedTour = () => {
-    setTourState((prev) => ({
-      ...prev,
-      run: true,
-      steps:
-        fixedTourSteps && fixedTourSteps.length > 0
-          ? fixedTourSteps
-          : defaultFixedSteps,
     }));
   };
 
@@ -164,6 +127,138 @@ export const GabsIAWidget = ({
 
   const handleTourComplete = () =>
     setTourState((prev) => ({ ...prev, run: false }));
+
+  // Adicione um estado para controlar o step atual do tour
+  const [currentStep, setCurrentStep] = useState(0);
+
+  // Handler para avançar o step do tour com redirect se necessário
+  const handleNextStep = async (stepIndex: number) => {
+    const stepsArr =
+      tourState.steps && tourState.steps.length > 0
+        ? tourState.steps
+        : fixedTourSteps && fixedTourSteps.length > 0
+          ? fixedTourSteps
+          : defaultFixedSteps;
+
+    const nextStep = stepIndex + 1;
+    const nextRoute = stepsArr[nextStep]?.route;
+    const currentRoute =
+      typeof window !== "undefined" ? window.location.pathname : "";
+
+    if (
+      nextRoute &&
+      nextRoute !== currentRoute &&
+      typeof onNavigate === "function"
+    ) {
+      onNavigate(nextRoute);
+      // Aguarda o DOM renderizar e o elemento alvo aparecer
+      let tries = 0;
+      let found = false;
+      const targetSelector = stepsArr[nextStep]?.target;
+      while (tries < 10) {
+        await new Promise((resolve) => setTimeout(resolve, 120));
+        const el = targetSelector
+          ? document.querySelector(targetSelector)
+          : null;
+        console.log(
+          `[Tour] Tentativa ${tries + 1}: procurando target "${targetSelector}"`,
+          el
+        );
+        if (el) {
+          found = true;
+          break;
+        }
+        tries++;
+      }
+      if (!found) {
+        console.warn(
+          `[Tour] Target não encontrado após navegação: "${targetSelector}"`
+        );
+      }
+      setCurrentStep(nextStep);
+    } else {
+      setCurrentStep(nextStep);
+    }
+    setTourState((prev) => ({
+      ...prev,
+      run: true,
+      steps: stepsArr,
+    }));
+  };
+
+  // Handler para voltar o step do tour com redirect se necessário
+  const handlePrevStep = async (stepIndex: number) => {
+    const stepsArr =
+      tourState.steps && tourState.steps.length > 0
+        ? tourState.steps
+        : fixedTourSteps && fixedTourSteps.length > 0
+          ? fixedTourSteps
+          : defaultFixedSteps;
+
+    const prevStep = stepIndex - 1;
+    if (prevStep < 0) return;
+    const prevRoute = stepsArr[prevStep]?.route;
+    const currentRoute =
+      typeof window !== "undefined" ? window.location.pathname : "";
+
+    if (
+      prevRoute &&
+      prevRoute !== currentRoute &&
+      typeof onNavigate === "function"
+    ) {
+      onNavigate(prevRoute);
+      // Aguarda o DOM renderizar e o elemento alvo aparecer
+      let tries = 0;
+      let found = false;
+      const targetSelector = stepsArr[prevStep]?.target;
+      while (tries < 10) {
+        await new Promise((resolve) => setTimeout(resolve, 120));
+        const el = targetSelector
+          ? document.querySelector(targetSelector)
+          : null;
+        console.log(
+          `[Tour] Tentativa ${tries + 1}: procurando target "${targetSelector}"`,
+          el
+        );
+        if (el) {
+          found = true;
+          break;
+        }
+        tries++;
+      }
+      if (!found) {
+        console.warn(
+          `[Tour] Target não encontrado após navegação: "${targetSelector}"`
+        );
+      }
+      setCurrentStep(prevStep);
+    } else {
+      setCurrentStep(prevStep);
+    }
+    setTourState((prev) => ({
+      ...prev,
+      run: true,
+      steps: stepsArr,
+    }));
+  };
+
+  // Sempre reseta o step ao iniciar o tour
+  const startFixedTour = async () => {
+    const stepsArr =
+      fixedTourSteps && fixedTourSteps.length > 0
+        ? fixedTourSteps
+        : defaultFixedSteps;
+    setCurrentStep(0);
+    if (stepsArr[0]?.route) {
+      await goToStepWithRoute(0, stepsArr);
+    } else {
+      setTourState((prev) => ({
+        ...prev,
+        run: true,
+        steps: stepsArr,
+      }));
+    }
+  };
 
   useEffect(() => {
     const handleDataGabsClick = (e: MouseEvent) => {
@@ -189,6 +284,14 @@ export const GabsIAWidget = ({
     if (!tourState.run) return; // Evita reexecução desnecessária
   }, []); // Removemos `tourState.run` para evitar loops
 
+  // Define o valor do data-gabs conforme a rota
+  const getGabsValue = () => {
+    const path = typeof window !== "undefined" ? window.location.pathname : "";
+    if (path === "/contact") return "contact";
+    if (path === "/projects") return "project-1";
+    return undefined;
+  };
+
   return (
     <>
       <CustomTour
@@ -196,6 +299,9 @@ export const GabsIAWidget = ({
         isRunning={tourState.run}
         onComplete={handleTourComplete}
         onSkip={handleTourComplete}
+        onNextStep={handleNextStep}
+        onPrevStep={handlePrevStep} // NOVO
+        specificStep={currentStep} // Passa o step explicitamente
       />
       <div
         ref={widgetRef}
@@ -271,6 +377,7 @@ export const GabsIAWidget = ({
                 />
                 <Play
                   size={24}
+                  className="dynamic-tour"
                   color={dynamicTourEnabled ? "#28a745" : "#ccc"} // Cor muda com base no estado
                   onClick={() => setDynamicTourEnabled((prev) => !prev)} // Alterna o estado do tour dinâmico
                   style={{ cursor: "pointer" }}
@@ -427,6 +534,7 @@ export const GabsIAWidget = ({
             role="button"
             aria-label="Abrir G•One"
             title="Arraste-me ou clique em um item do portfólio"
+            data-gabs={getGabsValue()}
             onDoubleClick={() => {
               if (disabled) {
                 reopenGabsIAWidget(setHistory);
