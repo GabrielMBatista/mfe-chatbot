@@ -59,7 +59,8 @@ export default async function handler(
       where: { id: PROFILE_ID },
     });
 
-    const model = assistant?.model || "gpt-4o";
+    const model =
+      assistant?.model || "ft:gpt-4.1-mini-2025-04-14:personal:gone:C715oDsN";
     console.log("model", model);
     const systemPrompt = `
     Você é ${assistant?.name || "G•One"}, o assistente oficial de Gabriel Marques.

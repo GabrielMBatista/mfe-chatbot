@@ -14,6 +14,7 @@ export function useGabsIA() {
   const [history, setHistory] = useState<HistoryEntry[]>(() => {
     try {
       const savedHistory = localStorage.getItem("gabs_chat_history");
+      // O contexto inicial será preenchido depois do carregamento do responses.json
       return savedHistory ? JSON.parse(savedHistory) : [];
     } catch {
       return [];
@@ -27,14 +28,27 @@ export function useGabsIA() {
       try {
         const res = await fetch(`${base}/responses.json`);
         const text = await res.text();
-        // Tenta corrigir JSON inválido removendo comentários e espaços extras
+
         const sanitized = text
-          .replace(/\/\/.*$/gm, "") // remove comentários de linha
-          .replace(/,\s*}/g, "}") // remove vírgula antes de }
-          .replace(/,\s*]/g, "]"); // remove vírgula antes de ]
+          .replace(/\/\/.*$/gm, "")
+          .replace(/,\s*}/g, "}")
+          .replace(/,\s*]/g, "]");
         const json = JSON.parse(sanitized);
         const { tourSteps: _ignore, ...bot } = json || {};
         setResponses(bot);
+
+        // Adiciona responses como contexto inicial no histórico
+        setHistory((prev) => {
+          const initialContext: HistoryEntry = {
+            question: "contexto",
+            answer: JSON.stringify(bot),
+            owner: "gone",
+          };
+          if (prev.length === 0 || prev[0]?.question !== "contexto") {
+            return [initialContext, ...prev];
+          }
+          return prev;
+        });
       } catch (e) {
         console.error("[GabsIA] Falha ao carregar responses.json", e);
       }
@@ -42,10 +56,7 @@ export function useGabsIA() {
     loadResponses();
   }, []);
 
-  const askGabs = async (
-    message: string,
-    history: HistoryEntry[] = []
-  ): Promise<BotResponse> => {
+  const askGabs = async (message: string): Promise<BotResponse> => {
     setLoading(true);
 
     const anchor = Object.keys(responses).find((key) =>
@@ -80,11 +91,19 @@ export function useGabsIA() {
       return response;
     }
 
+    // Monta contexto: responses + histórico anterior
+    const contextoResponses: HistoryEntry = {
+      question: "contexto",
+      answer: JSON.stringify(responses),
+      owner: "gone",
+    };
+    const contextoHistory = [contextoResponses, ...history];
+
     try {
       const result = await fetch(`${base}/api/gabsia`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, history }),
+        body: JSON.stringify({ message, history: contextoHistory }),
       });
 
       const data = await result.json();
