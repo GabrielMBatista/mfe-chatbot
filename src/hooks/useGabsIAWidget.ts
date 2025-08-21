@@ -16,7 +16,7 @@ const tourStorageKey = "gabs_tour_skipped";
 const base = process.env.NEXT_PUBLIC_CHATBOT_ORIGIN || "http://localhost:3001";
 
 const ASSETS = {
-  anchor: `${base}/widget-anchor.lottie`,
+  anchor: `${base}/Widget-anchor.lottie`,
   loading: `${base}/Loading.lottie`,
 };
 
