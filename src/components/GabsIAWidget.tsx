@@ -71,14 +71,6 @@ export const GabsIAWidget = ({
     startFixedTour,
   } = useTourController({ fixedTourSteps, onNavigate });
 
-  // Define o valor do data-gabs conforme a rota
-  const getGabsValue = () => {
-    const path = typeof window !== "undefined" ? window.location.pathname : "";
-    if (path === "/contact") return "contact";
-    if (path === "/projects") return "project-1";
-    return undefined;
-  };
-
   const allowedKeywords = [
     "gabriel",
     "portfólio",
@@ -95,6 +87,12 @@ export const GabsIAWidget = ({
     const q = question.toLowerCase();
     return allowedKeywords.some((kw) => q.includes(kw));
   };
+
+  React.useEffect(() => {
+    const handler = () => startFixedTour();
+    window.addEventListener("startGabsTour", handler);
+    return () => window.removeEventListener("startGabsTour", handler);
+  }, [startFixedTour]);
 
   return (
     <>
@@ -121,9 +119,9 @@ export const GabsIAWidget = ({
           window.addEventListener("mouseup", onmouseup);
         }}
         onTouchStart={(e: React.TouchEvent) => {
-          const rect = widgetRef.current?.getBoundingClientRect();
           const touch = e.touches[0];
-          if (!rect || !touch) return;
+          const rect = widgetRef.current?.getBoundingClientRect();
+          if (!rect) return;
           dragOffset.current = {
             x: touch.clientX - rect.left,
             y: touch.clientY - rect.top,
@@ -176,7 +174,7 @@ export const GabsIAWidget = ({
                 <HelpCircle
                   size={24}
                   color="#0028af"
-                  onClick={startFixedTour}
+                  onClick={() => startFixedTour()}
                   style={{ cursor: "pointer" }}
                 />
                 <Play
@@ -480,5 +478,7 @@ export const GabsIAWidget = ({
   );
 };
 
-export { HelpCircle };
+export function startGabsTour() {
+  window.dispatchEvent(new Event("startGabsTour"));
+}
 export default GabsIAWidget;

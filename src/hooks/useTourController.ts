@@ -19,7 +19,7 @@ export function useTourController({
 
   const defaultFixedSteps: TourStep[] = [];
 
-  const POLLING_TIMEOUT_MS = 2000;
+  const POLLING_TIMEOUT_MS = 3000;
   const POLLING_INTERVAL_MS = 120;
 
   const TOUR_STEP_STORAGE_KEY = "gabs-guided-tour-step";
@@ -208,32 +208,43 @@ export function useTourController({
     [tourState.steps, fixedTourSteps, onNavigate]
   );
 
-  const startFixedTour = useCallback(async () => {
-    const stepsArr =
-      fixedTourSteps && fixedTourSteps.length > 0
-        ? fixedTourSteps
-        : defaultFixedSteps;
-    let initialStep = 0;
-    try {
-      const savedStep = localStorage.getItem(TOUR_STEP_STORAGE_KEY);
-      if (savedStep) {
-        const idx = parseInt(savedStep, 10);
-        if (!isNaN(idx) && idx >= 0 && idx < stepsArr.length) {
-          initialStep = idx;
-        }
+  const startFixedTour = useCallback(
+    async (initialStep?: number) => {
+      const stepsArr =
+        fixedTourSteps && fixedTourSteps.length > 0
+          ? fixedTourSteps
+          : defaultFixedSteps;
+      let stepToStart = 0;
+      if (
+        typeof initialStep === "number" &&
+        initialStep >= 0 &&
+        initialStep < stepsArr.length
+      ) {
+        stepToStart = initialStep;
+      } else {
+        try {
+          const savedStep = localStorage.getItem(TOUR_STEP_STORAGE_KEY);
+          if (savedStep) {
+            const idx = parseInt(savedStep, 10);
+            if (!isNaN(idx) && idx >= 0 && idx < stepsArr.length) {
+              stepToStart = idx;
+            }
+          }
+        } catch {}
       }
-    } catch {}
-    setCurrentStep(initialStep);
-    if (stepsArr[initialStep]?.route) {
-      await goToStepWithRoute(initialStep, stepsArr);
-    } else {
-      setTourState((prev) => ({
-        ...prev,
-        run: true,
-        steps: stepsArr,
-      }));
-    }
-  }, [fixedTourSteps, goToStepWithRoute, defaultFixedSteps]);
+      setCurrentStep(stepToStart);
+      if (stepsArr[stepToStart]?.route) {
+        await goToStepWithRoute(stepToStart, stepsArr);
+      } else {
+        setTourState((prev) => ({
+          ...prev,
+          run: true,
+          steps: stepsArr,
+        }));
+      }
+    },
+    [fixedTourSteps, goToStepWithRoute, defaultFixedSteps]
+  );
 
   const getDynamicTourFromStorage = () => {
     try {

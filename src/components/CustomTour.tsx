@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { X, ChevronLeft, ChevronRight, SkipForward } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, SkipForward, Loader2 } from "lucide-react";
 import { Tokens, tokensDark, tokensLight } from "@/styles/tokens";
 import { CustomTourProps } from "Chatbot/GabsIAWidget";
 
@@ -30,6 +30,79 @@ function injectStyles(styles: string, targetDocument: Document = document) {
   const styleElement = targetDocument.createElement("style");
   styleElement.textContent = styles;
   targetDocument.head.appendChild(styleElement);
+}
+
+// Função para verificar se o elemento está visível na viewport
+function isElementVisible(rect: DOMRect | null) {
+  if (!rect) return false;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  return (
+    rect.bottom > 0 &&
+    rect.right > 0 &&
+    rect.top < vh &&
+    rect.left < vw &&
+    rect.width > 0 &&
+    rect.height > 0
+  );
+}
+
+// Função para scrollar mostrando target e card juntos, evitando sobreposição
+function scrollTargetAndCardIntoView(targetRect: DOMRect, tooltipH: number) {
+  const margin = 16;
+  const viewportHeight = window.innerHeight;
+  let scrollY = window.scrollY;
+
+  // Espaço disponível acima e abaixo do target
+  const spaceAbove = targetRect.top - margin;
+  const spaceBelow = viewportHeight - targetRect.bottom - margin;
+
+  // Preferência: mostrar target + card abaixo, sem sobrepor
+  if (spaceBelow >= tooltipH + margin) {
+    // Target já visível, card cabe abaixo
+    const cardBottom = targetRect.bottom + tooltipH + margin;
+    if (cardBottom > viewportHeight) {
+      // Scroll para mostrar target + card juntos
+      scrollY += cardBottom - viewportHeight;
+      window.scrollTo({ top: scrollY, behavior: "smooth" });
+    } else if (targetRect.bottom < margin) {
+      // Target está fora do topo, scroll para mostrar target + card
+      scrollY += targetRect.bottom - margin;
+      window.scrollTo({ top: scrollY, behavior: "smooth" });
+    }
+  } else if (spaceAbove >= tooltipH + margin) {
+    // Card cabe acima do target, sem sobrepor
+    const cardTop = targetRect.top - tooltipH - margin;
+    if (cardTop < 0) {
+      // Scroll para mostrar target + card juntos acima
+      scrollY += cardTop;
+      window.scrollTo({ top: scrollY, behavior: "smooth" });
+    } else if (targetRect.top > viewportHeight - margin) {
+      // Target está fora do bottom, scroll para mostrar target + card
+      scrollY += targetRect.top - (viewportHeight - margin);
+      window.scrollTo({ top: scrollY, behavior: "smooth" });
+    }
+  } else {
+    // Fallback: tenta centralizar target e card juntos, sem sobrepor
+    const targetCenter = targetRect.top + targetRect.height / 2;
+    let desiredTop = targetCenter - tooltipH / 2;
+    // Garante que não sobreponha o target
+    if (
+      desiredTop < targetRect.bottom + margin &&
+      desiredTop + tooltipH > targetRect.top - margin
+    ) {
+      // Ajusta para cima ou para baixo
+      if (targetRect.bottom + tooltipH + margin < viewportHeight) {
+        desiredTop = targetRect.bottom + margin;
+      } else if (targetRect.top - tooltipH - margin > 0) {
+        desiredTop = targetRect.top - tooltipH - margin;
+      }
+    }
+    window.scrollTo({
+      top: window.scrollY + desiredTop - margin,
+      behavior: "smooth",
+    });
+  }
 }
 
 export const CustomTour: React.FC<
@@ -105,40 +178,31 @@ export const CustomTour: React.FC<
       const tooltipH = tooltipSize.height;
 
       let x = rect.left + rect.width / 2 - tooltipW / 2;
-      let y = rect.bottom + 15; // abaixo
+      let y;
 
-      // Preferência: abaixo
-      if (y + tooltipH <= viewportHeight - margin) {
-        // ok, abaixo
+      // Preferência: abaixo do target
+      if (rect.bottom + tooltipH + margin <= viewportHeight) {
+        y = rect.bottom + margin;
       }
-      // Acima
-      else if (rect.top - tooltipH - 15 >= margin) {
-        y = rect.top - tooltipH - 15;
+      // Acima do target
+      else if (rect.top - tooltipH - margin >= 0) {
+        y = rect.top - tooltipH - margin;
       }
-      // Direita
-      else if (rect.right + 15 + tooltipW <= viewportWidth - margin) {
-        x = rect.right + 15;
-        y = rect.top + rect.height / 2 - tooltipH / 2;
-      }
-      // Esquerda
-      else if (rect.left - 15 - tooltipW >= margin) {
-        x = rect.left - tooltipW - 15;
-        y = rect.top + rect.height / 2 - tooltipH / 2;
-      }
-      // Centro (fallback)
+      // Fallback: tenta centralizar entre target e viewport
       else {
-        x = viewportWidth / 2 - tooltipW / 2;
-        y = viewportHeight / 2 - tooltipH / 2;
+        // Se target está mais para cima, coloca card abaixo (mesmo que ultrapasse um pouco)
+        if (rect.top < viewportHeight / 2) {
+          y = Math.min(rect.bottom + margin, viewportHeight - tooltipH - margin);
+        } else {
+          // Se target está mais para baixo, coloca card acima
+          y = Math.max(rect.top - tooltipH - margin, margin);
+        }
       }
 
-      // Ajuste para não sair da tela
+      // Ajuste horizontal para não sair da tela
       if (x < margin) x = margin;
       else if (x + tooltipW > viewportWidth - margin) {
         x = viewportWidth - tooltipW - margin;
-      }
-      if (y < margin) y = margin;
-      else if (y + tooltipH > viewportHeight - margin) {
-        y = viewportHeight - tooltipH - margin;
       }
 
       setTooltipPosition({ x, y });
@@ -215,12 +279,15 @@ export const CustomTour: React.FC<
     const targetElement = document.querySelector(targetSelector);
 
     if (targetElement) {
-      targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      const rect = targetElement.getBoundingClientRect();
+      // Usa altura do card estimada ou real
+      const tooltipH = tooltipSize.height || 200;
+      scrollTargetAndCardIntoView(rect, tooltipH);
       setTimeout(() => {
         calculatePosition(targetElement, steps[currentStep].placement);
       }, 100);
     }
-  }, [currentStep, isRunning, steps, calculatePosition]);
+  }, [currentStep, isRunning, steps, calculatePosition, tooltipSize.height]);
 
   // Atualiza ao clicar no mesmo item ou em um novo
   useEffect(() => {
@@ -292,6 +359,34 @@ export const CustomTour: React.FC<
 
   const handleSkip = () => onSkip();
 
+  const [loadingStep, setLoadingStep] = useState(false);
+
+  // Detecta troca de rota (step com .route) e mostra loading
+  useEffect(() => {
+    if (!isRunning || !steps[currentStep]) return;
+    if (steps[currentStep].route) {
+      setLoadingStep(true);
+      // Aguarda até o target aparecer ou timeout
+      const selector = steps[currentStep].target;
+      let timeoutId: any;
+      const checkTarget = () => {
+        if (document.querySelector(selector)) {
+          setLoadingStep(false);
+          clearTimeout(timeoutId);
+        }
+      };
+      timeoutId = setTimeout(() => setLoadingStep(false), 2500);
+      const intervalId = setInterval(checkTarget, 120);
+      checkTarget();
+      return () => {
+        clearTimeout(timeoutId);
+        clearInterval(intervalId);
+      };
+    } else {
+      setLoadingStep(false);
+    }
+  }, [currentStep, isRunning, steps]);
+
   if (!isRunning || !steps[currentStep]) return null;
 
   const currentStepData = steps[currentStep];
@@ -300,13 +395,15 @@ export const CustomTour: React.FC<
   const clampedStep = Math.min(Math.max(currentStep, 0), total - 1);
   const percent = ((clampedStep + 1) / total) * 100;
 
+  const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
+
   return (
     <>
       {/* Overlay (caso precise capturar cliques) */}
       <div style={{ pointerEvents: "auto" }} />
 
       {/* Spotlight */}
-      {!isCenter && targetRect && (
+      {!isCenter && targetRect && isElementVisible(targetRect) && (
         <div
           style={{
             position: "fixed",
@@ -338,7 +435,9 @@ export const CustomTour: React.FC<
           left: tooltipPosition.x,
           top: tooltipPosition.y,
           transform: targetRect ? undefined : "translate(-50%, -50%)",
-          maxHeight: "80vh",
+          maxWidth: isMobile ? "90vw" : "24rem",
+          width: isMobile ? "90vw" : "auto",
+          maxHeight: isMobile ? "60vh" : "80vh",
           overflow: "hidden", // evita scroll bleed nas bordas arredondadas
           background: `linear-gradient(145deg, ${hsl(t.card)}, ${hsl(t.muted)})`,
           border: `1px solid ${hsl(t.border)}`,
@@ -346,7 +445,6 @@ export const CustomTour: React.FC<
           borderRadius: "12px",
           transition:
             "transform .2s ease, box-shadow .2s ease, opacity .2s ease",
-          maxWidth: "24rem",
           opacity: 1,
           backdropFilter: "blur(6px)",
         }}
@@ -409,18 +507,27 @@ export const CustomTour: React.FC<
               </Button>
             </div>
 
+            {/* Loading durante troca de página/rota */}
+            {loadingStep && (
+              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 60 }}>
+                <Loader2 size={32} className="animate-spin" color={hsl(t.primary)} />
+              </div>
+            )}
+
             {/* Content */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-                color: hsl(t.foreground),
-                lineHeight: 1.6,
-              }}
-            >
-              {currentStepData.content}
-            </div>
+            {!loadingStep && (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px",
+                  color: hsl(t.foreground),
+                  lineHeight: 1.6,
+                }}
+              >
+                {currentStepData.content}
+              </div>
+            )}
 
             {/* Barra de progresso só para tour dinâmico (1 passo) */}
             {total === 1 && (
