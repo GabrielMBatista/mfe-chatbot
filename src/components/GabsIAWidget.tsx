@@ -79,6 +79,23 @@ export const GabsIAWidget = ({
     return undefined;
   };
 
+  const allowedKeywords = [
+    "gabriel",
+    "portfólio",
+    "projeto",
+    "experiência",
+    "habilidade",
+    "idade",
+    "casado",
+    "filhos",
+    "cidade",
+  ];
+
+  const isQuestionAllowed = (question: string) => {
+    const q = question.toLowerCase();
+    return allowedKeywords.some((kw) => q.includes(kw));
+  };
+
   return (
     <>
       <CustomTour
@@ -289,24 +306,32 @@ export const GabsIAWidget = ({
                         >
                           <div
                             style={{
-                              background: "#f1f1f1",
-                              color: "#000",
-                              padding: "10px 14px",
-                              borderRadius: "0 12px 12px 12px",
-                              maxWidth: "80%",
-                              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                              background:
+                                "linear-gradient(90deg,#e3eafc 0%,#f7faff 100%)",
+                              color: "#222",
+                              padding: "12px 16px",
+                              borderRadius: "0 16px 16px 16px",
+                              maxWidth: "95%",
+                              boxShadow: "0 2px 8px rgba(0,40,175,0.08)",
                               marginBottom: 2,
+                              border: "1px solid #dbeafe",
+                              fontSize: "15px",
+                              fontFamily: "Inter, Arial, sans-serif",
+                              fontWeight: 500,
+                              letterSpacing: "0.01em",
                             }}
                           >
+                            {/* Interpreta HTML nas respostas do agente */}
                             <p
                               style={{
                                 margin: 0,
-                                fontSize: "14px",
-                                lineHeight: "1.4",
+                                lineHeight: "1.5",
+                                wordBreak: "break-word",
                               }}
-                            >
-                              {entry.answer}
-                            </p>
+                              dangerouslySetInnerHTML={{
+                                __html: entry.answer.replace(/\n/g, "<br />"),
+                              }}
+                            />
                           </div>
                         </div>
                       )
@@ -333,7 +358,15 @@ export const GabsIAWidget = ({
                   }}
                 />
                 <button
-                  onClick={sendQuestion}
+                  onClick={() => {
+                    if (!isQuestionAllowed(userMessage)) {
+                      setAiReply(
+                        "Desculpe, só posso responder perguntas sobre Gabriel Marques ou seu portfólio."
+                      );
+                      return;
+                    }
+                    sendQuestion();
+                  }}
                   style={{
                     marginTop: 6,
                     background: "#0028af",
@@ -359,7 +392,8 @@ export const GabsIAWidget = ({
             role="button"
             aria-label="Abrir G•One"
             title="clique duas vezes para abrir o assistente"
-            data-gabs={getGabsValue()}
+            gabs-content="Este é o G•One, assistente do portfólio. Clique para conversar ou obter ajuda contextual."
+            data-gabs={"gabs-avatar"}
             onDoubleClick={() => {
               if (disabled) {
                 reopenGabsIAWidget(setHistory);

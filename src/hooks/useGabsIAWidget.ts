@@ -22,15 +22,10 @@ const ASSETS = {
 
 export function useGabsIAWidget({
   fixedPosition,
-  initialMessage = {
-    question: "",
-    answer:
-      "Olá! Eu sou o G•One, assistente oficial do portfólio de Gabriel Marques. Posso te ajudar a entender cada área do site, explicar decisões técnicas ou apresentar os projetos do Gabriel com clareza e profundidade. Dica: utilize os botões de tour (ícone de interrogação) para navegar por explicações guiadas das principais áreas do portfólio.  Também é possível clicar em áreas marcadas com data-gabs para explicações rápidas. Como posso te ajudar hoje?",
-    owner: "gone",
-  },
+  initialMessage,
 }: GabsIAWidgetProps & {
   fixedPosition?: DockPos;
-  initialMessage?: { question: string; answer: string; owner: "gone" };
+  initialMessage?: { question: string; answer: string };
 }) {
   const {
     askGabs,
@@ -55,7 +50,7 @@ export function useGabsIAWidget({
         {
           index: 0,
           question: initialMessage.question,
-          answer: initialMessage.answer,
+          answer: initialMessage?.answer ?? "",
           userTimestamp: Date.now(),
           agentTimestamp: Date.now(),
         },
@@ -318,7 +313,7 @@ export function useGabsIAWidget({
         {
           index: 1,
           question: "",
-          answer: initialMessage.answer,
+          answer: initialMessage?.answer ?? "",
           userTimestamp: Date.now(),
           agentTimestamp: Date.now(),
         },
@@ -330,7 +325,7 @@ export function useGabsIAWidget({
             {
               index: 1,
               question: "",
-              answer: initialMessage.answer,
+              answer: initialMessage?.answer ?? "",
               userTimestamp: Date.now(),
               agentTimestamp: Date.now(),
             },
