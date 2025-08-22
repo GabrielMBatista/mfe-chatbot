@@ -50,7 +50,7 @@ export function useGabsIA() {
           return prev;
         });
       } catch (e) {
-        console.error("[GabsIA] Falha ao carregar responses.json", e);
+        // Removido: console.error("[GabsIA] Falha ao carregar responses.json", e);
       }
     };
     loadResponses();
@@ -128,7 +128,7 @@ export function useGabsIA() {
       setLoading(false);
       return data;
     } catch (e) {
-      console.error("[GabsIA] Erro ao chamar API:", e);
+      // Removido: console.error("[GabsIA] Erro ao chamar API:", e);
       setLoading(false);
       return {
         reply:

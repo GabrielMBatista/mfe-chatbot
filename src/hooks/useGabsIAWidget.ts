@@ -332,7 +332,7 @@ export function useGabsIAWidget({
           ])
         );
       } catch (e) {
-        console.error("Erro ao salvar histórico inicial no localStorage:", e);
+        // Removido: console.error("Erro ao salvar histórico inicial no localStorage:", e);
       }
     }
   }, []);

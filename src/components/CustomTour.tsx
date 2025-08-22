@@ -14,7 +14,6 @@ import { CustomTourProps } from "Chatbot/GabsIAWidget";
 const hsl = (v: string, a?: number) =>
   a == null ? `hsl(${v})` : `hsl(${v} / ${a})`;
 
-/** Usa .dark no <html> para alternar entre tokens locais */
 function useLocalTokens(): Tokens {
   const getIsDark = () =>
     typeof document !== "undefined" &&
@@ -38,7 +37,6 @@ function injectStyles(styles: string, targetDocument: Document = document) {
   targetDocument.head.appendChild(styleElement);
 }
 
-// Função para verificar se o elemento está visível na viewport
 function isElementVisible(rect: DOMRect | null) {
   if (!rect) return false;
   const vw = window.innerWidth;
@@ -53,51 +51,39 @@ function isElementVisible(rect: DOMRect | null) {
   );
 }
 
-// Função para scrollar mostrando target e card juntos, evitando sobreposição
 function scrollTargetAndCardIntoView(targetRect: DOMRect, tooltipH: number) {
   const margin = 16;
   const viewportHeight = window.innerHeight;
   let scrollY = window.scrollY;
 
-  // Espaço disponível acima e abaixo do target
   const spaceAbove = targetRect.top - margin;
   const spaceBelow = viewportHeight - targetRect.bottom - margin;
 
-  // Preferência: mostrar target + card abaixo, sem sobrepor
   if (spaceBelow >= tooltipH + margin) {
-    // Target já visível, card cabe abaixo
     const cardBottom = targetRect.bottom + tooltipH + margin;
     if (cardBottom > viewportHeight) {
-      // Scroll para mostrar target + card juntos
       scrollY += cardBottom - viewportHeight;
       window.scrollTo({ top: scrollY, behavior: "smooth" });
     } else if (targetRect.bottom < margin) {
-      // Target está fora do topo, scroll para mostrar target + card
       scrollY += targetRect.bottom - margin;
       window.scrollTo({ top: scrollY, behavior: "smooth" });
     }
   } else if (spaceAbove >= tooltipH + margin) {
-    // Card cabe acima do target, sem sobrepor
     const cardTop = targetRect.top - tooltipH - margin;
     if (cardTop < 0) {
-      // Scroll para mostrar target + card juntos acima
       scrollY += cardTop;
       window.scrollTo({ top: scrollY, behavior: "smooth" });
     } else if (targetRect.top > viewportHeight - margin) {
-      // Target está fora do bottom, scroll para mostrar target + card
       scrollY += targetRect.top - (viewportHeight - margin);
       window.scrollTo({ top: scrollY, behavior: "smooth" });
     }
   } else {
-    // Fallback: tenta centralizar target e card juntos, sem sobrepor
     const targetCenter = targetRect.top + targetRect.height / 2;
     let desiredTop = targetCenter - tooltipH / 2;
-    // Garante que não sobreponha o target
     if (
       desiredTop < targetRect.bottom + margin &&
       desiredTop + tooltipH > targetRect.top - margin
     ) {
-      // Ajusta para cima ou para baixo
       if (targetRect.bottom + tooltipH + margin < viewportHeight) {
         desiredTop = targetRect.bottom + margin;
       } else if (targetRect.top - tooltipH - margin > 0) {
@@ -124,11 +110,9 @@ export const CustomTour: React.FC<
   specificStep,
   isContextualHelp = false,
   onNextStep,
-  onPrevStep, // NOVO
+  onPrevStep,
 }) => {
   const t = useLocalTokens();
-  console.log("isRunning", isRunning);
-  // Inicializa currentStep apenas uma vez, ou quando specificStep muda
   const [currentStep, setCurrentStep] = useState(specificStep ?? 0);
 
   useEffect(() => {
@@ -186,29 +170,21 @@ export const CustomTour: React.FC<
       let x = rect.left + rect.width / 2 - tooltipW / 2;
       let y;
 
-      // Preferência: abaixo do target
       if (rect.bottom + tooltipH + margin <= viewportHeight) {
         y = rect.bottom + margin;
-      }
-      // Acima do target
-      else if (rect.top - tooltipH - margin >= 0) {
+      } else if (rect.top - tooltipH - margin >= 0) {
         y = rect.top - tooltipH - margin;
-      }
-      // Fallback: tenta centralizar entre target e viewport
-      else {
-        // Se target está mais para cima, coloca card abaixo (mesmo que ultrapasse um pouco)
+      } else {
         if (rect.top < viewportHeight / 2) {
           y = Math.min(
             rect.bottom + margin,
             viewportHeight - tooltipH - margin
           );
         } else {
-          // Se target está mais para baixo, coloca card acima
           y = Math.max(rect.top - tooltipH - margin, margin);
         }
       }
 
-      // Ajuste horizontal para não sair da tela
       if (x < margin) x = margin;
       else if (x + tooltipW > viewportWidth - margin) {
         x = viewportWidth - tooltipW - margin;
@@ -242,7 +218,6 @@ export const CustomTour: React.FC<
     [calculatePosition, currentStep, steps]
   );
 
-  // Atualiza o tamanho do tooltip quando renderiza
   useEffect(() => {
     if (tooltipRef.current) {
       const { offsetWidth, offsetHeight } = tooltipRef.current;
@@ -250,7 +225,6 @@ export const CustomTour: React.FC<
     }
   }, [currentStep, isRunning]);
 
-  // Recalcula em resize
   useEffect(() => {
     const handleResize = () => {
       if (!isRunning || !steps[currentStep]) return;
@@ -265,7 +239,6 @@ export const CustomTour: React.FC<
     return () => window.removeEventListener("resize", handleResize);
   }, [currentStep, isRunning, steps, calculatePosition]);
 
-  // Adiciona evento de scroll
   useEffect(() => {
     const handleScroll = () => {
       if (!isRunning || !steps[currentStep]) return;
@@ -281,7 +254,6 @@ export const CustomTour: React.FC<
     return () => window.removeEventListener("scroll", handleScroll);
   }, [currentStep, isRunning, steps, calculatePosition]);
 
-  // Posiciona ao mudar o passo
   useEffect(() => {
     if (!isRunning || !steps[currentStep]) return;
     const targetSelector = steps[currentStep].target;
@@ -289,7 +261,6 @@ export const CustomTour: React.FC<
 
     if (targetElement) {
       const rect = targetElement.getBoundingClientRect();
-      // Usa altura do card estimada ou real
       const tooltipH = tooltipSize.height || 200;
       scrollTargetAndCardIntoView(rect, tooltipH);
       setTimeout(() => {
@@ -298,7 +269,6 @@ export const CustomTour: React.FC<
     }
   }, [currentStep, isRunning, steps, calculatePosition, tooltipSize.height]);
 
-  // Atualiza ao clicar no mesmo item ou em um novo
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -325,7 +295,7 @@ export const CustomTour: React.FC<
         targetElement &&
         !targetElement.contains(e.target as Node)
       ) {
-        onSkip(); // Encerra o tour ao clicar fora
+        onSkip();
       }
     };
 
@@ -370,12 +340,10 @@ export const CustomTour: React.FC<
 
   const [loadingStep, setLoadingStep] = useState(false);
 
-  // Detecta troca de rota (step com .route) e mostra loading
   useEffect(() => {
     if (!isRunning || !steps[currentStep]) return;
     if (steps[currentStep].route) {
       setLoadingStep(true);
-      // Aguarda até o target aparecer ou timeout
       const selector = steps[currentStep].target;
       let timeoutId: any;
       const checkTarget = () => {
@@ -408,10 +376,8 @@ export const CustomTour: React.FC<
 
   return (
     <>
-      {/* Overlay (caso precise capturar cliques) */}
       <div style={{ pointerEvents: "auto" }} />
 
-      {/* Spotlight */}
       {!isCenter && targetRect && isElementVisible(targetRect) && (
         <div
           style={{
@@ -435,7 +401,6 @@ export const CustomTour: React.FC<
         />
       )}
 
-      {/* Tooltip */}
       <Card
         ref={tooltipRef}
         style={{
@@ -447,7 +412,7 @@ export const CustomTour: React.FC<
           maxWidth: isMobile ? "90vw" : "24rem",
           width: isMobile ? "90vw" : "auto",
           maxHeight: isMobile ? "60vh" : "80vh",
-          overflow: "hidden", // evita scroll bleed nas bordas arredondadas
+          overflow: "hidden",
           background: `linear-gradient(145deg, ${hsl(t.card)}, ${hsl(t.muted)})`,
           border: `1px solid ${hsl(t.border)}`,
           boxShadow: `0 12px 36px -8px ${hsl(t.primary, 0.25)}, 0 2px 12px -6px rgba(0,0,0,.25)`,
@@ -458,7 +423,6 @@ export const CustomTour: React.FC<
           backdropFilter: "blur(6px)",
         }}
       >
-        {/* Arrow (opcional) */}
         <div
           aria-hidden
           style={{
@@ -479,7 +443,6 @@ export const CustomTour: React.FC<
           <div
             style={{ display: "flex", flexDirection: "column", gap: "16px" }}
           >
-            {/* Close */}
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <Button
                 aria-label="Fechar"
@@ -516,7 +479,6 @@ export const CustomTour: React.FC<
               </Button>
             </div>
 
-            {/* Loading durante troca de página/rota */}
             {loadingStep && (
               <div
                 style={{
@@ -534,7 +496,6 @@ export const CustomTour: React.FC<
               </div>
             )}
 
-            {/* Content */}
             {!loadingStep && (
               <div
                 style={{
@@ -549,7 +510,6 @@ export const CustomTour: React.FC<
               </div>
             )}
 
-            {/* Barra de progresso só para tour dinâmico (1 passo) */}
             {total === 1 && (
               <div
                 role="progressbar"
@@ -593,7 +553,6 @@ export const CustomTour: React.FC<
               </div>
             )}
 
-            {/* Progress */}
             {!isContextualHelp && total > 1 && (
               <div
                 role="group"
@@ -605,7 +564,6 @@ export const CustomTour: React.FC<
                   color: hsl(t.mutedForeground),
                 }}
               >
-                {/* Linha superior: contagem + dots */}
                 <div
                   style={{
                     display: "flex",
@@ -656,7 +614,6 @@ export const CustomTour: React.FC<
                   </div>
                 </div>
 
-                {/* Barra de progresso */}
                 <div
                   role="progressbar"
                   aria-valuemin={0}
@@ -703,7 +660,6 @@ export const CustomTour: React.FC<
               </div>
             )}
 
-            {/* Divider sutil antes das ações */}
             <div
               aria-hidden
               style={{
@@ -715,7 +671,6 @@ export const CustomTour: React.FC<
               }}
             />
 
-            {/* Actions */}
             <div
               style={{
                 display: "flex",
