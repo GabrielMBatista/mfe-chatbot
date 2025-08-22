@@ -19,8 +19,8 @@ export function useTourController({
 
   const defaultFixedSteps: TourStep[] = [];
 
-  const POLLING_TIMEOUT_MS = 3000;
-  const POLLING_INTERVAL_MS = 120;
+  const POLLING_TIMEOUT_MS = 3500;
+  const POLLING_INTERVAL_MS = 100;
 
   const TOUR_STEP_STORAGE_KEY = "gabs-guided-tour-step";
 

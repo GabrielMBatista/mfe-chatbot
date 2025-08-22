@@ -1,7 +1,13 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { X, ChevronLeft, ChevronRight, SkipForward, Loader2 } from "lucide-react";
+import {
+  X,
+  ChevronLeft,
+  ChevronRight,
+  SkipForward,
+  Loader2,
+} from "lucide-react";
 import { Tokens, tokensDark, tokensLight } from "@/styles/tokens";
 import { CustomTourProps } from "Chatbot/GabsIAWidget";
 
@@ -192,7 +198,10 @@ export const CustomTour: React.FC<
       else {
         // Se target está mais para cima, coloca card abaixo (mesmo que ultrapasse um pouco)
         if (rect.top < viewportHeight / 2) {
-          y = Math.min(rect.bottom + margin, viewportHeight - tooltipH - margin);
+          y = Math.min(
+            rect.bottom + margin,
+            viewportHeight - tooltipH - margin
+          );
         } else {
           // Se target está mais para baixo, coloca card acima
           y = Math.max(rect.top - tooltipH - margin, margin);
@@ -509,8 +518,19 @@ export const CustomTour: React.FC<
 
             {/* Loading durante troca de página/rota */}
             {loadingStep && (
-              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 60 }}>
-                <Loader2 size={32} className="animate-spin" color={hsl(t.primary)} />
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  minHeight: 60,
+                }}
+              >
+                <Loader2
+                  size={32}
+                  className="animate-spin"
+                  color={hsl(t.primary)}
+                />
               </div>
             )}
 
