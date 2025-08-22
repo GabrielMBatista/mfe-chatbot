@@ -97,6 +97,10 @@ function scrollTargetAndCardIntoView(targetRect: DOMRect, tooltipH: number) {
   }
 }
 
+function isMobileDevice() {
+  return typeof window !== "undefined" && window.innerWidth <= 768;
+}
+
 export const CustomTour: React.FC<
   CustomTourProps & {
     onNextStep?: (currentStep: number) => void;
@@ -256,9 +260,16 @@ export const CustomTour: React.FC<
 
   useEffect(() => {
     if (!isRunning || !steps[currentStep]) return;
+    if (isMobileDevice()) {
+      setTooltipPosition({
+        x: window.innerWidth / 2 - tooltipSize.width / 2,
+        y: window.innerHeight / 2 - tooltipSize.height / 2,
+      });
+      setTargetRect(null);
+      return;
+    }
     const targetSelector = steps[currentStep].target;
     const targetElement = document.querySelector(targetSelector);
-
     if (targetElement) {
       const rect = targetElement.getBoundingClientRect();
       const tooltipH = tooltipSize.height || 200;
@@ -364,6 +375,36 @@ export const CustomTour: React.FC<
     }
   }, [currentStep, isRunning, steps]);
 
+  const renderOverlay = () => {
+    if (!isRunning || !steps[currentStep]) return null;
+    if (isMobileDevice()) {
+      return (
+        <div
+          className="custom-tour-overlay"
+          style={{
+            pointerEvents: "auto",
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 98,
+          }}
+          onClick={handleSkip}
+        />
+      );
+    }
+    return (
+      <div
+        className="custom-tour-overlay"
+        style={{
+          pointerEvents: "none",
+          background: "rgba(0,0,0,0.5)",
+          zIndex: 98,
+        }}
+      />
+    );
+  };
+
+  const showHighlight =
+    !isMobileDevice() && targetRect && isElementVisible(targetRect);
+
   if (!isRunning || !steps[currentStep]) return null;
 
   const currentStepData = steps[currentStep];
@@ -376,9 +417,9 @@ export const CustomTour: React.FC<
 
   return (
     <>
-      <div style={{ pointerEvents: "auto" }} />
+      {renderOverlay()}
 
-      {!isCenter && targetRect && isElementVisible(targetRect) && (
+      {!isCenter && showHighlight && (
         <div
           style={{
             position: "fixed",
@@ -408,10 +449,14 @@ export const CustomTour: React.FC<
           zIndex: 99,
           left: tooltipPosition.x,
           top: tooltipPosition.y,
-          transform: targetRect ? undefined : "translate(-50%, -50%)",
-          maxWidth: isMobile ? "90vw" : "24rem",
-          width: isMobile ? "90vw" : "auto",
-          maxHeight: isMobile ? "60vh" : "80vh",
+          transform: isMobileDevice()
+            ? "none"
+            : targetRect
+              ? undefined
+              : "translate(-50%, -50%)",
+          maxWidth: isMobileDevice() ? "90vw" : "24rem",
+          width: isMobileDevice() ? "90vw" : "auto",
+          maxHeight: isMobileDevice() ? "60vh" : "80vh",
           overflow: "hidden",
           background: `linear-gradient(145deg, ${hsl(t.card)}, ${hsl(t.muted)})`,
           border: `1px solid ${hsl(t.border)}`,
