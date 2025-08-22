@@ -1,65 +1,72 @@
-# TypeScript Next.js example
+# MFE Chatbot
 
-This is a really simple project that shows the usage of Next.js with TypeScript.
+This project is a micro frontend built with **Next.js** and **TypeScript** that exposes a chatbot widget. It includes UI components, hooks and API routes that can be federated into other applications.
 
-## Tour opcional
-
-O widget inclui um tour introdutório opcional. Use o botão **Pular tour** no início ou em qualquer etapa para ignorá-lo. O chat pode ser aberto a qualquer momento durante ou após o tour.
-
-## Deploy your own
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/vercel/next.js/tree/canary/examples/with-typescript&project-name=with-typescript&repository-name=with-typescript)
-
-## How to use it?
-
-Execute [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app) with [npm](https://docs.npmjs.com/cli/init), [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/), or [pnpm](https://pnpm.io) to bootstrap the example:
+## Getting started
 
 ```bash
-npx create-next-app --example with-typescript with-typescript-app
+npm install
+npm run dev   # start development server
+npm run build # create production build
+npm start     # run built app
 ```
 
-```bash
-yarn create next-app --example with-typescript with-typescript-app
+## Usage
+
+After running the application, the micro frontend exposes its widgets via
+Module Federation. A host application can consume them by declaring the remote
+and dynamically importing the component.
+
+**next.config.js of the host**
+
+```js
+new NextFederationPlugin({
+  remotes: {
+    Chatbot: 'Chatbot@http://localhost:3001/_next/static/chunks/remoteEntry.js',
+  },
+});
 ```
 
-```bash
-pnpm create next-app --example with-typescript with-typescript-app
+**Embedding the widget in a page**
+
+```tsx
+import dynamic from 'next/dynamic';
+
+const GabsIAWidget = dynamic(() => import('Chatbot/GabsIAWidget'), { ssr: false });
+
+export default function Page() {
+  return (
+    <GabsIAWidget
+      initialMessage={{ question: 'Olá', answer: 'Oi!', owner: 'gone' }}
+      fixedPosition="bottom-right"
+    />
+  );
+}
 ```
 
-Deploy it to the cloud with [Vercel](https://vercel.com/new?utm_source=github&utm_medium=readme&utm_campaign=next-example) ([Documentation](https://nextjs.org/docs/deployment)).
+To start the guided tour programmatically, import and call `startGabsTour` from
+the widget:
 
-## Notes
+```ts
+import { startGabsTour } from 'Chatbot/GabsIAWidget';
 
-This example shows how to integrate the TypeScript type system into Next.js. Since TypeScript is supported out of the box with Next.js, all we have to do is to install TypeScript.
-
-```shell
-npm install --save-dev typescript
+startGabsTour();
 ```
 
-```shell
-yarn install --save-dev typescript
-```
+## Project structure
 
-```shell
-pnpm install --save-dev typescript
-```
+- **src/** – main application source code
+  - **components/** – reusable React components and UI primitives
+  - **hooks/** – custom React hooks used throughout the project
+  - **lib/** – helper libraries such as OpenAI and Prisma clients
+  - **pages/** – Next.js pages and API routes for the chatbot and tour
+  - **styles/** – global styles and design tokens
+  - **types/** – TypeScript declaration files
+  - **utils/** – utility helpers
+- **prisma/** – database schema and migrations
+- **public/** – static assets like Lottie animations and icons
+- **tailwind.config.ts** – Tailwind CSS configuration
 
-To enable TypeScript's features, we install the type declarations for React and Node.
+## License
 
-```shell
-npm install --save-dev @types/react @types/react-dom @types/node
-```
-
-```shell
-yarn install --save-dev @types/react @types/react-dom @types/node
-```
-
-```shell
-pnpm install --save-dev @types/react @types/react-dom @types/node
-```
-
-When we run `next dev` the next time, Next.js will start looking for any `.ts` or `.tsx` files in our project and builds it. It even automatically creates a `tsconfig.json` file for our project with the recommended settings.
-
-Next.js has built-in TypeScript declarations, so we'll get autocompletion for Next.js' modules straight away.
-
-A `type-check` script is also added to `package.json`, which runs TypeScript's `tsc` CLI in `noEmit` mode to run type-checking separately. You can then include this, for example, in your `test` scripts.
+This repository is licensed under the [MIT License](LICENSE).
