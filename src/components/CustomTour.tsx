@@ -97,10 +97,6 @@ function scrollTargetAndCardIntoView(targetRect: DOMRect, tooltipH: number) {
   }
 }
 
-function isMobileDevice() {
-  return typeof window !== "undefined" && window.innerWidth <= 768;
-}
-
 export const CustomTour: React.FC<
   CustomTourProps & {
     onNextStep?: (currentStep: number) => void;
@@ -260,14 +256,6 @@ export const CustomTour: React.FC<
 
   useEffect(() => {
     if (!isRunning || !steps[currentStep]) return;
-    if (isMobileDevice()) {
-      setTooltipPosition({
-        x: window.innerWidth / 2 - tooltipSize.width / 2,
-        y: window.innerHeight / 2 - tooltipSize.height / 2,
-      });
-      setTargetRect(null);
-      return;
-    }
     const targetSelector = steps[currentStep].target;
     const targetElement = document.querySelector(targetSelector);
     if (targetElement) {
@@ -377,19 +365,6 @@ export const CustomTour: React.FC<
 
   const renderOverlay = () => {
     if (!isRunning || !steps[currentStep]) return null;
-    if (isMobileDevice()) {
-      return (
-        <div
-          className="custom-tour-overlay"
-          style={{
-            pointerEvents: "auto",
-            background: "rgba(0,0,0,0.5)",
-            zIndex: 98,
-          }}
-          onClick={handleSkip}
-        />
-      );
-    }
     return (
       <div
         className="custom-tour-overlay"
@@ -402,8 +377,7 @@ export const CustomTour: React.FC<
     );
   };
 
-  const showHighlight =
-    !isMobileDevice() && targetRect && isElementVisible(targetRect);
+  const showHighlight = targetRect && isElementVisible(targetRect);
 
   if (!isRunning || !steps[currentStep]) return null;
 
@@ -412,8 +386,6 @@ export const CustomTour: React.FC<
   const total = Math.max(steps.length, 1);
   const clampedStep = Math.min(Math.max(currentStep, 0), total - 1);
   const percent = ((clampedStep + 1) / total) * 100;
-
-  const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
 
   return (
     <>
@@ -449,14 +421,10 @@ export const CustomTour: React.FC<
           zIndex: 99,
           left: tooltipPosition.x,
           top: tooltipPosition.y,
-          transform: isMobileDevice()
-            ? "none"
-            : targetRect
-              ? undefined
-              : "translate(-50%, -50%)",
-          maxWidth: isMobileDevice() ? "90vw" : "24rem",
-          width: isMobileDevice() ? "90vw" : "auto",
-          maxHeight: isMobileDevice() ? "60vh" : "80vh",
+          transform: targetRect ? undefined : "translate(-50%, -50%)",
+          maxWidth: "24rem",
+          width: "auto",
+          maxHeight: "80vh",
           overflow: "hidden",
           background: `linear-gradient(145deg, ${hsl(t.card)}, ${hsl(t.muted)})`,
           border: `1px solid ${hsl(t.border)}`,
