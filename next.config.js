@@ -19,6 +19,7 @@ const nextConfig = {
                     './Chatbot': './src/pages/chatbot/index.tsx',
                     './GabsIAWidget': './src/components/GabsIAWidget.tsx',
                     './GabsTourWidget': './src/components/GabsTourWidget.tsx',
+                    './GabsIaApi': './src/pages/api/gabsia.ts'
                 },
                 remotes: {
                     shell: `shell@${process.env.NEXT_PUBLIC_SHELL_REMOTE_URL}/_next/static/chunks/remoteEntry.js`,
