@@ -33,18 +33,25 @@ async function main() {
         console.log('✅ .npmrc removido após o build');
     }
 
+    // Função para copiar diretórios e arquivos recursivamente
+    function copyDirSync(src, dest) {
+        if (!fs.existsSync(src)) return;
+        const stat = fs.statSync(src);
+        if (stat.isDirectory()) {
+            fs.mkdirSync(dest, { recursive: true });
+            for (const entry of fs.readdirSync(src)) {
+                copyDirSync(path.join(src, entry), path.join(dest, entry));
+            }
+        } else {
+            fs.copyFileSync(src, dest);
+        }
+    }
+
     // 4. Copia a pasta .prisma (binários) para .next/standalone/node_modules/.prisma
     const srcPrisma = path.resolve('node_modules/.prisma');
     const destPrisma = path.resolve('.next/standalone/node_modules/.prisma');
-    if (fs.existsSync(srcPrisma)) {
-        fs.mkdirSync(destPrisma, { recursive: true });
-        for (const file of fs.readdirSync(srcPrisma)) {
-            const srcFile = path.join(srcPrisma, file);
-            const destFile = path.join(destPrisma, file);
-            fs.copyFileSync(srcFile, destFile);
-        }
-        console.log('✅ Binários do Prisma copiados para .next/standalone/node_modules/.prisma');
-    }
+    copyDirSync(srcPrisma, destPrisma);
+    console.log('✅ Binários do Prisma copiados para .next/standalone/node_modules/.prisma');
 }
 
 main();
