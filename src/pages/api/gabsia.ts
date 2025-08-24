@@ -19,6 +19,10 @@ const ALLOWED_ORIGIN_PATTERNS = [
 ];
 
 function applyCors(req: NextApiRequest, res: NextApiResponse) {
+  // Adicione este log para depuração
+  if (process.env.NODE_ENV === "production") {
+    console.log("CORS origin:", req.headers.origin);
+  }
   const origin = req.headers.origin || "";
   const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(
     origin
