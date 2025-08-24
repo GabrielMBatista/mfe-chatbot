@@ -4,8 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prebuild": "node vercel-prisma-build.js",
     "dev": "NEXT_PRIVATE_LOCAL_WEBPACK=true next dev",
-    "build": "NEXT_PRIVATE_LOCAL_WEBPACK=true next build",
+    "build": "NEXT_PRIVATE_LOCAL_WEBPACK=true next build && node vercel-prisma-build.js",
     "start": "NEXT_PRIVATE_LOCAL_WEBPACK=true next start"
   },
   "dependencies": {
