@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "NEXT_PRIVATE_LOCAL_WEBPACK=true next dev",
-    "build": "NEXT_PRIVATE_LOCAL_WEBPACK=true next build && node vercel-prisma-build.js",
+    "build": "prisma generate && NEXT_PRIVATE_LOCAL_WEBPACK=true next build",
     "start": "NEXT_PRIVATE_LOCAL_WEBPACK=true next start",
     "postinstall": "prisma generate"
   },
@@ -41,6 +41,7 @@
     "@radix-ui/react-toggle-group": "^1.1.10",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@tanstack/react-query": "^5.83.0",
+    "@vercel/nft": "^0.29.4",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -51,6 +52,7 @@
     "lucide-react": "^0.511.0",
     "next": "^14.2.31",
     "next-themes": "^0.3.0",
+    "prisma": "^6.13.0",
     "react": "18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "18.3.1",
@@ -62,13 +64,12 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
-    "zod": "^3.25.76",
-    "@vercel/nft": "^0.29.4",
-    "prisma": "^6.13.0"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
     "@module-federation/nextjs-mf": "^8.8.30",
+    "@prisma/nextjs-monorepo-workaround-plugin": "^6.14.0",
     "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^20",
     "@types/react": "^18.2.0",

@@ -1,13 +1,6 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import type { PrismaClient as PrismaClientType } from "@prisma/client";
+import type { NextApiRequest, NextApiResponse } from "next";
+import prisma from "@/lib/prisma";
 import { askOpenAI } from "@/lib/openai";
-
-const PrismaPkg = eval("require")("@prisma/client") as any;
-const prisma: PrismaClientType =
-  (global as any).__prisma || new PrismaPkg.PrismaClient();
-if (process.env.NODE_ENV !== "production") {
-  (global as any).__prisma = prisma;
-}
 
 const PROFILE_ID = process.env.PUBLIC_PROFILE_ID || "public";
 const ALLOW_LOCALHOST = process.env.NEXT_PUBLIC_ALLOW_CORS_LOCALHOST === "true";
@@ -18,8 +11,10 @@ const ALLOWED_ORIGIN_PATTERNS = [
   /^https?:\/\/mfe-chatbot\.vercel\.app$/,
 ];
 
+// ✅ Prisma precisa de Node.js (não Edge)
+export const config = { runtime: "nodejs" };
+
 function applyCors(req: NextApiRequest, res: NextApiResponse) {
-  // Adicione este log para depuração
   if (process.env.NODE_ENV === "production") {
     console.log("CORS origin:", req.headers.origin);
   }
@@ -27,9 +22,7 @@ function applyCors(req: NextApiRequest, res: NextApiResponse) {
   const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(
     origin
   );
-  const isAllowedOrigin = ALLOWED_ORIGIN_PATTERNS.some((pattern) =>
-    pattern.test(origin)
-  );
+  const isAllowedOrigin = ALLOWED_ORIGIN_PATTERNS.some((p) => p.test(origin));
 
   if ((ALLOW_LOCALHOST && isLocalhost) || isAllowedOrigin) {
     res.setHeader("Access-Control-Allow-Origin", origin);
@@ -40,7 +33,6 @@ function applyCors(req: NextApiRequest, res: NextApiResponse) {
       "Content-Type, Authorization"
     );
     res.setHeader("Access-Control-Max-Age", "86400");
-
     if (req.method === "OPTIONS") {
       res.status(204).end();
       return true;
@@ -48,7 +40,6 @@ function applyCors(req: NextApiRequest, res: NextApiResponse) {
     return false;
   }
 
-  // Sempre responde OPTIONS para evitar bloqueio do navegador
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,OPTIONS");
@@ -60,7 +51,6 @@ function applyCors(req: NextApiRequest, res: NextApiResponse) {
     res.status(204).end();
     return true;
   }
-
   return false;
 }
 
@@ -69,16 +59,13 @@ export default async function handler(
   res: NextApiResponse
 ) {
   if (applyCors(req, res)) return;
-
   if (req.method !== "POST") return res.status(405).end();
 
-  const { message, history } = req.body;
-
+  const { message, history } = req.body || {};
   if (!message) return res.status(400).json({ error: "Mensagem vazia" });
 
-  // Remove o initialMessage do histórico antes de enviar para o agente
   const filteredHistory =
-    Array.isArray(history) && history.length > 0 && !history[0].question
+    Array.isArray(history) && history.length > 0 && !history[0]?.question
       ? history.slice(1)
       : history;
 
@@ -86,7 +73,6 @@ export default async function handler(
     const assistant = await prisma.assistantProfile.findUnique({
       where: { id: PROFILE_ID },
     });
-
     const model =
       assistant?.model || "ft:gpt-4.1-mini-2025-04-14:personal:gone:C715oDsN";
     const nowTimestamp = Date.now();
