@@ -32,6 +32,19 @@ async function main() {
         fs.unlinkSync('.npmrc');
         console.log('✅ .npmrc removido após o build');
     }
+
+    // 4. Copia a pasta .prisma (binários) para .next/standalone/node_modules/.prisma
+    const srcPrisma = path.resolve('node_modules/.prisma');
+    const destPrisma = path.resolve('.next/standalone/node_modules/.prisma');
+    if (fs.existsSync(srcPrisma)) {
+        fs.mkdirSync(destPrisma, { recursive: true });
+        for (const file of fs.readdirSync(srcPrisma)) {
+            const srcFile = path.join(srcPrisma, file);
+            const destFile = path.join(destPrisma, file);
+            fs.copyFileSync(srcFile, destFile);
+        }
+        console.log('✅ Binários do Prisma copiados para .next/standalone/node_modules/.prisma');
+    }
 }
 
 main();
