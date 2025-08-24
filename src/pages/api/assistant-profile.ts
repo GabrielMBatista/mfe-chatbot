@@ -10,14 +10,22 @@ if (process.env.NODE_ENV !== "production") {
 
 const PROFILE_ID = process.env.PUBLIC_PROFILE_ID || "public";
 const ALLOW_LOCALHOST = process.env.NEXT_PUBLIC_ALLOW_CORS_LOCALHOST === "true";
+const ALLOWED_ORIGIN_PATTERNS = [
+  /^https?:\/\/([a-zA-Z0-9-]+\.)*gabrielmarquesbatista\.com$/,
+  /^https?:\/\/([a-zA-Z0-9-]+\.)*shell-frontend-beta\.vercel\.app$/,
+  /^https?:\/\/mfe-chatbot\.vercel\.app$/,
+];
 
 function applyCors(req: NextApiRequest, res: NextApiResponse) {
   const origin = req.headers.origin || "";
   const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(
     origin
   );
+  const isAllowedOrigin = ALLOWED_ORIGIN_PATTERNS.some((pattern) =>
+    pattern.test(origin)
+  );
 
-  if (ALLOW_LOCALHOST && isLocalhost) {
+  if ((ALLOW_LOCALHOST && isLocalhost) || isAllowedOrigin) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,OPTIONS");
