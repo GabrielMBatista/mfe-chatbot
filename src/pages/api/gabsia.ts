@@ -41,7 +41,22 @@ function applyCors(req: NextApiRequest, res: NextApiResponse) {
       res.status(204).end();
       return true;
     }
+    return false;
   }
+
+  // Sempre responde OPTIONS para evitar bloqueio do navegador
+  if (req.method === "OPTIONS") {
+    res.setHeader("Access-Control-Allow-Origin", "null");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,OPTIONS");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization"
+    );
+    res.setHeader("Access-Control-Max-Age", "86400");
+    res.status(204).end();
+    return true;
+  }
+
   return false;
 }
 
