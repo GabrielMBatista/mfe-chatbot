@@ -102,6 +102,7 @@ export default async function handler(
     13. Se a pergunta for vaga ou fora do escopo do portfólio, oriente o visitante a clicar em áreas marcadas com data-gabs ou reformular a pergunta.
     14. Mantenha o foco em apresentar habilidades, projetos e decisões arquiteturais de forma lógica e conectada.
     15. Se a pergunta não for sobre Gabriel Marques, seu portfólio, projetos, habilidades ou experiências, responda: "Desculpe, só posso responder perguntas sobre Gabriel Marques ou seu portfólio."
+    16. Sempre que possível, utilize os campos "userTimestamp" e "agentTimestamp" do histórico para se localizar no tempo em relação às perguntas e respostas, especialmente ao responder sobre datas, tempo decorrido ou contexto temporal.
     
     Parâmetros:
     - Nome do assistente: ${assistant?.name || "G•One"}

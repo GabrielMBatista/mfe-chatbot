@@ -71,23 +71,6 @@ export const GabsIAWidget = ({
     startFixedTour,
   } = useTourController({ fixedTourSteps, onNavigate });
 
-  const allowedKeywords = [
-    "gabriel",
-    "portfólio",
-    "projeto",
-    "experiência",
-    "habilidade",
-    "idade",
-    "casado",
-    "filhos",
-    "cidade",
-  ];
-
-  const isQuestionAllowed = (question: string) => {
-    const q = question.toLowerCase();
-    return allowedKeywords.some((kw) => q.includes(kw));
-  };
-
   React.useEffect(() => {
     const handler = () => startFixedTour();
     window.addEventListener("startGabsTour", handler);
@@ -345,7 +328,11 @@ export const GabsIAWidget = ({
                   ref={inputRef}
                   value={userMessage}
                   onChange={(e) => setUserMessage(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && sendQuestion()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      sendQuestion();
+                    }
+                  }}
                   placeholder="Digite sua pergunta"
                   style={{
                     width: "100%",
@@ -356,15 +343,7 @@ export const GabsIAWidget = ({
                   }}
                 />
                 <button
-                  onClick={() => {
-                    if (!isQuestionAllowed(userMessage)) {
-                      setAiReply(
-                        "Desculpe, só posso responder perguntas sobre Gabriel Marques ou seu portfólio."
-                      );
-                      return;
-                    }
-                    sendQuestion();
-                  }}
+                  onClick={sendQuestion}
                   style={{
                     marginTop: 6,
                     background: "#0028af",
@@ -390,7 +369,7 @@ export const GabsIAWidget = ({
             role="button"
             aria-label="Abrir G•One"
             title="clique duas vezes para abrir o assistente"
-            gabs-content="Este é o G•One, assistente do portfólio. Clique para conversar ou obter ajuda contextual."
+            data-gabs-content="Este é o G•One, assistente do portfólio. Clique para conversar ou obter ajuda contextual."
             data-gabs={"gabs-avatar"}
             onDoubleClick={() => {
               if (disabled) {
@@ -412,7 +391,6 @@ export const GabsIAWidget = ({
                 if (now - (lastTapRef.current || 0) < 300) {
                   setContextMessage(null);
                   setAiReply(null);
-
                   setTimeout(() => inputRef.current?.focus(), 0);
                   lastTapRef.current = 0;
                   return;
