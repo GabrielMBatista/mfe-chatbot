@@ -46,7 +46,7 @@ function applyCors(req: NextApiRequest, res: NextApiResponse) {
 
   // Sempre responde OPTIONS para evitar bloqueio do navegador
   if (req.method === "OPTIONS") {
-    res.setHeader("Access-Control-Allow-Origin", "null");
+    res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,OPTIONS");
     res.setHeader(
       "Access-Control-Allow-Headers",
