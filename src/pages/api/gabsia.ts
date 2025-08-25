@@ -69,6 +69,12 @@ export default async function handler(
       ? history.slice(1)
       : history;
 
+  // Extrai o valor mais recente de userDateBR do histórico
+  const currentUserDateBR = Array.isArray(filteredHistory)
+    ? [...filteredHistory].reverse().find((h) => h.question && h.userDateBR)
+        ?.userDateBR
+    : undefined;
+
   try {
     const assistant = await prisma.assistantProfile.findUnique({
       where: { id: PROFILE_ID },
@@ -81,6 +87,8 @@ export default async function handler(
     Observação importante: O primeiro item do histórico enviado é o contexto inicial (mensagem de boas-vindas) e não deve ser considerado como pergunta do usuário. Considere apenas os pares seguintes para referência de perguntas e respostas.
 
     IMPORTANTE: Os campos "userDateBR" e "agentDateBR" do histórico já estão convertidos para o formato brasileiro (dia/mês/ano, mês por extenso). Sempre utilize esses campos para responder perguntas sobre datas, nunca utilize os campos de timestamp ou a data do sistema.
+
+    Quando o usuário perguntar "que dia é hoje?", utilize o valor da variável currentUserDateBR, que já foi extraída do histórico e representa a data mais recente da última pergunta do usuário. Exemplo: "Hoje é ${currentUserDateBR}."
 
     Função principal:
     Guiar visitantes pelo portfólio de Gabriel Marques, explicar decisões técnicas e apresentar os projetos com profundidade, clareza e relevância.
