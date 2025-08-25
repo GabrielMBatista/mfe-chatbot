@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useGabsIA } from "@/hooks/useGabsIA";
-import { DockPos, GabsIAWidgetProps, HistoryPair } from "Chatbot/GabsIAWidget";
+import { DockPos, GabsIAWidgetProps, HistoryPair as OriginalHistoryPair } from "Chatbot/GabsIAWidget";
+
+type HistoryPair = OriginalHistoryPair & {
+  agentDateBR?: string;
+  userDateBR?: string;
+};
 
 export const TYPES_VERSION = "1.0.0";
 
@@ -19,6 +24,16 @@ const ASSETS = {
   anchor: `${base}/Widget-anchor.lottie`,
   loading: `${base}/Loading.lottie`,
 };
+
+function formatDateBR(timestamp: number) {
+  const date = new Date(timestamp - 3 * 60 * 60 * 1000);
+  const dia = date.getDate().toString().padStart(2, "0");
+  const mes = date.toLocaleString("pt-br", { month: "long" });
+  const ano = date.getFullYear();
+  const hora = date.getHours().toString().padStart(2, "0");
+  const minuto = date.getMinutes().toString().padStart(2, "0");
+  return `${dia} de ${mes} de ${ano}, ${hora}:${minuto}`;
+}
 
 export function useGabsIAWidget({
   fixedPosition,
@@ -43,16 +58,27 @@ export function useGabsIAWidget({
         ? localStorage.getItem("gabs_chat_history")
         : null;
     if (savedHistory) {
-      return JSON.parse(savedHistory);
+      const parsed = JSON.parse(savedHistory);
+      return parsed.map((h: any) => ({
+        ...h,
+        userDateBR: h.userTimestamp ? formatDateBR(h.userTimestamp) : undefined,
+        agentDateBR: h.agentTimestamp
+          ? formatDateBR(h.agentTimestamp)
+          : undefined,
+      }));
     }
     if (initialMessage && initialMessage.answer) {
+      const userTimestamp = Date.now();
+      const agentTimestamp = Date.now();
       return [
         {
           index: 0,
           question: initialMessage.question,
           answer: initialMessage?.answer ?? "",
-          userTimestamp: Date.now(),
-          agentTimestamp: Date.now(),
+          userTimestamp,
+          agentTimestamp,
+          userDateBR: formatDateBR(userTimestamp),
+          agentDateBR: formatDateBR(agentTimestamp),
         },
       ];
     }
@@ -116,7 +142,6 @@ export function useGabsIAWidget({
     const question = userMessage;
     setUserMessage("");
     setHistory((prev) => {
-      // Garante que o índice seja sempre o último + 1, ignorando pares inválidos
       const validHistory = prev.filter((h) => h.question && h.answer);
       const nextIndex =
         validHistory.length > 0
@@ -130,11 +155,12 @@ export function useGabsIAWidget({
           answer: "",
           userTimestamp,
           agentTimestamp: 0,
+          userDateBR: formatDateBR(userTimestamp),
+          agentDateBR: undefined,
         },
       ];
     });
     try {
-      // Envia o histórico válido junto com a pergunta
       const validHistory = history.filter((h) => h.question && h.answer);
       const data = await askGabs(question, validHistory);
       const agentTimestamp = Date.now();
@@ -146,11 +172,24 @@ export function useGabsIAWidget({
             ...last,
             answer: data.reply,
             agentTimestamp,
+            agentDateBR: formatDateBR(agentTimestamp),
           };
         }
         localStorage.setItem(
           "gabs_chat_history",
-          JSON.stringify(updated.filter((h) => h.question && h.answer))
+          JSON.stringify(
+            updated
+              .filter((h) => h.question && h.answer)
+              .map((h) => ({
+                ...h,
+                userDateBR: h.userTimestamp
+                  ? formatDateBR(h.userTimestamp)
+                  : undefined,
+                agentDateBR: h.agentTimestamp
+                  ? formatDateBR(h.agentTimestamp)
+                  : undefined,
+              }))
+          )
         );
         return updated;
       });
@@ -164,11 +203,24 @@ export function useGabsIAWidget({
             ...last,
             answer: "Erro ao se comunicar com a IA.",
             agentTimestamp,
+            agentDateBR: formatDateBR(agentTimestamp),
           };
         }
         localStorage.setItem(
           "gabs_chat_history",
-          JSON.stringify(updated.filter((h) => h.question && h.answer))
+          JSON.stringify(
+            updated
+              .filter((h) => h.question && h.answer)
+              .map((h) => ({
+                ...h,
+                userDateBR: h.userTimestamp
+                  ? formatDateBR(h.userTimestamp)
+                  : undefined,
+                agentDateBR: h.agentTimestamp
+                  ? formatDateBR(h.agentTimestamp)
+                  : undefined,
+              }))
+          )
         );
         return updated;
       });
@@ -316,6 +368,8 @@ export function useGabsIAWidget({
           answer: initialMessage?.answer ?? "",
           userTimestamp: Date.now(),
           agentTimestamp: Date.now(),
+          userDateBR: formatDateBR(Date.now()),
+          agentDateBR: formatDateBR(Date.now()),
         },
       ]);
       try {
@@ -328,6 +382,8 @@ export function useGabsIAWidget({
               answer: initialMessage?.answer ?? "",
               userTimestamp: Date.now(),
               agentTimestamp: Date.now(),
+              userDateBR: formatDateBR(Date.now()),
+              agentDateBR: formatDateBR(Date.now()),
             },
           ])
         );
