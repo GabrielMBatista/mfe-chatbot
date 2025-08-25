@@ -30,9 +30,7 @@ function formatDateBR(timestamp: number) {
   const dia = date.getDate().toString().padStart(2, "0");
   const mes = date.toLocaleString("pt-br", { month: "long" });
   const ano = date.getFullYear();
-  const hora = date.getHours().toString().padStart(2, "0");
-  const minuto = date.getMinutes().toString().padStart(2, "0");
-  return `${dia} de ${mes} de ${ano}, ${hora}:${minuto}`;
+  return `${dia} de ${mes} de ${ano}`;
 }
 
 export function useGabsIAWidget({
