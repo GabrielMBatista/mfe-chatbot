@@ -28,6 +28,15 @@ import { TourState } from 'Chatbot/GabsIAWidget';
 
 const TourDemo: React.FC = () => {
   const t = useLocalTokens();
+  const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains("dark");
+
+  const heroGradient = useMemo(() => {
+    if (tokensLight.gradientHero && tokensDark.gradientHero) {
+      return isDark ? tokensDark.gradientHero : tokensLight.gradientHero;
+    }
+    return `linear-gradient(135deg, ${hsl(t.primary)}, ${hsl(t.accent)})`;
+  }, [isDark, t.primary, t.accent]);
+
   const keyframes = useMemo(
     () => `
     @keyframes pulse-glow {
@@ -204,12 +213,7 @@ const TourDemo: React.FC = () => {
                 className="text-2xl font-bold"
                 /* gradient-text */
                 style={{
-                  background:
-                    tokensLight.gradientHero && tokensDark.gradientHero
-                      ? document?.documentElement?.classList.contains("dark")
-                        ? tokensDark.gradientHero
-                        : tokensLight.gradientHero
-                      : `linear-gradient(135deg, ${hsl(t.primary)}, ${hsl(t.accent)})`,
+                  background: heroGradient,
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   backgroundClip: "text",
@@ -342,25 +346,25 @@ const TourDemo: React.FC = () => {
 
             <Card
               style={{
-                background: document.documentElement.classList.contains("dark")
+                background: isDark
                   ? tokensDark.gradientCard
                   : tokensLight.gradientCard,
-                boxShadow: document.documentElement.classList.contains("dark")
+                boxShadow: isDark
                   ? tokensDark.shadowSoft
                   : tokensLight.shadowSoft,
                 transition: t.transitionSmooth,
               }}
               onMouseEnter={(e) =>
-                (e.currentTarget.style.boxShadow =
-                  document.documentElement.classList.contains("dark")
-                    ? tokensDark.shadowMedium
-                    : tokensLight.shadowMedium)
+              (e.currentTarget.style.boxShadow =
+                isDark
+                  ? tokensDark.shadowMedium
+                  : tokensLight.shadowMedium)
               }
               onMouseLeave={(e) =>
-                (e.currentTarget.style.boxShadow =
-                  document.documentElement.classList.contains("dark")
-                    ? tokensDark.shadowSoft
-                    : tokensLight.shadowSoft)
+              (e.currentTarget.style.boxShadow =
+                isDark
+                  ? tokensDark.shadowSoft
+                  : tokensLight.shadowSoft)
               }
             >
               <CardContent style={{ padding: "1.5rem" }}>
@@ -391,25 +395,25 @@ const TourDemo: React.FC = () => {
 
             <Card
               style={{
-                background: document.documentElement.classList.contains("dark")
+                background: isDark
                   ? tokensDark.gradientCard
                   : tokensLight.gradientCard,
-                boxShadow: document.documentElement.classList.contains("dark")
+                boxShadow: isDark
                   ? tokensDark.shadowSoft
                   : tokensLight.shadowSoft,
                 transition: t.transitionSmooth,
               }}
               onMouseEnter={(e) =>
-                (e.currentTarget.style.boxShadow =
-                  document.documentElement.classList.contains("dark")
-                    ? tokensDark.shadowMedium
-                    : tokensLight.shadowMedium)
+              (e.currentTarget.style.boxShadow =
+                isDark
+                  ? tokensDark.shadowMedium
+                  : tokensLight.shadowMedium)
               }
               onMouseLeave={(e) =>
-                (e.currentTarget.style.boxShadow =
-                  document.documentElement.classList.contains("dark")
-                    ? tokensDark.shadowSoft
-                    : tokensLight.shadowSoft)
+              (e.currentTarget.style.boxShadow =
+                isDark
+                  ? tokensDark.shadowSoft
+                  : tokensLight.shadowSoft)
               }
             >
               <CardContent style={{ padding: "1.5rem" }}>
@@ -440,25 +444,25 @@ const TourDemo: React.FC = () => {
 
             <Card
               style={{
-                background: document.documentElement.classList.contains("dark")
+                background: isDark
                   ? tokensDark.gradientCard
                   : tokensLight.gradientCard,
-                boxShadow: document.documentElement.classList.contains("dark")
+                boxShadow: isDark
                   ? tokensDark.shadowSoft
                   : tokensLight.shadowSoft,
                 transition: t.transitionSmooth,
               }}
               onMouseEnter={(e) =>
-                (e.currentTarget.style.boxShadow =
-                  document.documentElement.classList.contains("dark")
-                    ? tokensDark.shadowMedium
-                    : tokensLight.shadowMedium)
+              (e.currentTarget.style.boxShadow =
+                isDark
+                  ? tokensDark.shadowMedium
+                  : tokensLight.shadowMedium)
               }
               onMouseLeave={(e) =>
-                (e.currentTarget.style.boxShadow =
-                  document.documentElement.classList.contains("dark")
-                    ? tokensDark.shadowSoft
-                    : tokensLight.shadowSoft)
+              (e.currentTarget.style.boxShadow =
+                isDark
+                  ? tokensDark.shadowSoft
+                  : tokensLight.shadowSoft)
               }
             >
               <CardContent style={{ padding: "1.5rem" }}>
@@ -558,21 +562,21 @@ const TourDemo: React.FC = () => {
             <Card
               style={{
                 transition: t.transitionSmooth,
-                boxShadow: document.documentElement.classList.contains("dark")
+                boxShadow: isDark
                   ? tokensDark.shadowSoft
                   : tokensLight.shadowSoft,
               }}
               onMouseEnter={(e) =>
-                (e.currentTarget.style.boxShadow =
-                  document.documentElement.classList.contains("dark")
-                    ? tokensDark.shadowMedium
-                    : tokensLight.shadowMedium)
+              (e.currentTarget.style.boxShadow =
+                isDark
+                  ? tokensDark.shadowMedium
+                  : tokensLight.shadowMedium)
               }
               onMouseLeave={(e) =>
-                (e.currentTarget.style.boxShadow =
-                  document.documentElement.classList.contains("dark")
-                    ? tokensDark.shadowSoft
-                    : tokensLight.shadowSoft)
+              (e.currentTarget.style.boxShadow =
+                isDark
+                  ? tokensDark.shadowSoft
+                  : tokensLight.shadowSoft)
               }
             >
               <CardHeader>
@@ -613,21 +617,21 @@ const TourDemo: React.FC = () => {
             <Card
               style={{
                 transition: t.transitionSmooth,
-                boxShadow: document.documentElement.classList.contains("dark")
+                boxShadow: isDark
                   ? tokensDark.shadowSoft
                   : tokensLight.shadowSoft,
               }}
               onMouseEnter={(e) =>
-                (e.currentTarget.style.boxShadow =
-                  document.documentElement.classList.contains("dark")
-                    ? tokensDark.shadowMedium
-                    : tokensLight.shadowMedium)
+              (e.currentTarget.style.boxShadow =
+                isDark
+                  ? tokensDark.shadowMedium
+                  : tokensLight.shadowMedium)
               }
               onMouseLeave={(e) =>
-                (e.currentTarget.style.boxShadow =
-                  document.documentElement.classList.contains("dark")
-                    ? tokensDark.shadowSoft
-                    : tokensLight.shadowSoft)
+              (e.currentTarget.style.boxShadow =
+                isDark
+                  ? tokensDark.shadowSoft
+                  : tokensLight.shadowSoft)
               }
             >
               <CardHeader>
@@ -696,7 +700,7 @@ const TourDemo: React.FC = () => {
           </p>
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 
